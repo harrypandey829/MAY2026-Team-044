@@ -46,6 +46,7 @@ import EquipmentPage from './pages/coach/EquipmentPage';
 import CoachProfilePage from './pages/coach/ProfilePage';
 import CoachSettingsPage from './pages/coach/SettingsPage';
 import CoachLostAndFoundPage from './pages/coach/LostAndFoundPage';
+import CoachHelpPage from './pages/coach/HelpPage';
 import MySportsPage from './pages/member/MySports';
 import MemberEventsPage from './pages/member/Events';
 import MembershipPortalPage from './pages/member/Membership';
@@ -56,9 +57,9 @@ import AchievementsPage from './pages/member/Achievements';
 import MemberPaymentsPage from './pages/member/Payments';
 import MemberAnnouncementsPage from './pages/member/Announcements';
 import MemberLostAndFoundPage from './pages/member/LostAndFoundPage';
-import MemberProfilePage from './pages/member/Profile';
 import MemberSettingsPage from './pages/member/Settings';
 import MyProfilePage from './pages/member/MyProfile';
+import MemberHelpPage from './pages/member/HelpPage';
 import MemberEditProfilePage from './pages/member/EditProfile';
 import { getDemoRole, isDemoAuthenticated } from './utils/demoAuth';
 
@@ -83,6 +84,22 @@ function LandingPage() {
   );
 }
 
+function ProtectedMemberRoute({ children }: { children: JSX.Element }) {
+  if (!isDemoAuthenticated() || getDemoRole() !== 'member') {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
+function ProtectedCoachRoute({ children }: { children: JSX.Element }) {
+  if (!isDemoAuthenticated() || getDemoRole() !== 'coach') {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
+
 function ProtectedAdminRoute({ children }: { children: JSX.Element }) {
   if (!isDemoAuthenticated() || getDemoRole() !== 'admin') {
     return <Navigate to="/login" replace />;
@@ -98,35 +115,37 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/my-sports" element={<MySportsPage />} />
-        <Route path="/dashboard/events" element={<MemberEventsPage />} />
-        <Route path="/dashboard/membership" element={<MembershipPortalPage />} />
-        <Route path="/dashboard/facility-booking" element={<FacilityBookingPage />} />
-        <Route path="/dashboard/attendance" element={<MemberAttendancePage />} />
-        <Route path="/dashboard/performance" element={<MemberPerformancePage />} />
-        <Route path="/dashboard/achievements" element={<AchievementsPage />} />
-        <Route path="/dashboard/payments" element={<MemberPaymentsPage />} />
-        <Route path="/dashboard/announcements" element={<MemberAnnouncementsPage />} />
-        <Route path="/dashboard/lost-and-found" element={<MemberLostAndFoundPage />} />
-        <Route path="/dashboard/profile" element={<MemberProfilePage />} />
-        <Route path="/dashboard/my-profile" element={<MyProfilePage />} />
-        <Route path="/dashboard/edit-profile" element={<MemberEditProfilePage />} />
-        <Route path="/dashboard/settings" element={<MemberSettingsPage />} />
+        <Route path="/dashboard" element={<ProtectedMemberRoute><Dashboard /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/my-sports" element={<ProtectedMemberRoute><MySportsPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/events" element={<ProtectedMemberRoute><MemberEventsPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/membership" element={<ProtectedMemberRoute><MembershipPortalPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/facility-booking" element={<ProtectedMemberRoute><FacilityBookingPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/attendance" element={<ProtectedMemberRoute><MemberAttendancePage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/performance" element={<ProtectedMemberRoute><MemberPerformancePage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/achievements" element={<ProtectedMemberRoute><AchievementsPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/payments" element={<ProtectedMemberRoute><MemberPaymentsPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/announcements" element={<ProtectedMemberRoute><MemberAnnouncementsPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/lost-and-found" element={<ProtectedMemberRoute><MemberLostAndFoundPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/profile" element={<ProtectedMemberRoute><MyProfilePage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/my-profile" element={<ProtectedMemberRoute><MyProfilePage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/edit-profile" element={<ProtectedMemberRoute><MemberEditProfilePage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/settings" element={<ProtectedMemberRoute><MemberSettingsPage /></ProtectedMemberRoute>} />
+        <Route path="/dashboard/help" element={<ProtectedMemberRoute><MemberHelpPage /></ProtectedMemberRoute>} />
         <Route path="/membership" element={<MembershipPage />} />
-        <Route path="/coach/dashboard" element={<CoachDashboardPage />} />
-        <Route path="/coach/team" element={<MyTeamPage />} />
-        <Route path="/coach/training" element={<TrainingSessionsPage />} />
-        <Route path="/coach/matches" element={<MatchesPage />} />
-        <Route path="/coach/attendance" element={<AttendancePage />} />
-        <Route path="/coach/calendar" element={<TeamCalendarPage />} />
-        <Route path="/coach/availability" element={<PlayerAvailabilityPage />} />
-        <Route path="/coach/performance" element={<PerformancePage />} />
-        <Route path="/coach/announcements" element={<CoachAnnouncementsPage />} />
-        <Route path="/coach/equipment" element={<EquipmentPage />} />
-        <Route path="/coach/lost-and-found" element={<CoachLostAndFoundPage />} />
-        <Route path="/coach/profile" element={<CoachProfilePage />} />
-        <Route path="/coach/settings" element={<CoachSettingsPage />} />
+        <Route path="/coach/dashboard" element={<ProtectedCoachRoute><CoachDashboardPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/team" element={<ProtectedCoachRoute><MyTeamPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/training" element={<ProtectedCoachRoute><TrainingSessionsPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/matches" element={<ProtectedCoachRoute><MatchesPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/attendance" element={<ProtectedCoachRoute><AttendancePage /></ProtectedCoachRoute>} />
+        <Route path="/coach/calendar" element={<ProtectedCoachRoute><TeamCalendarPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/availability" element={<ProtectedCoachRoute><PlayerAvailabilityPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/performance" element={<ProtectedCoachRoute><PerformancePage /></ProtectedCoachRoute>} />
+        <Route path="/coach/announcements" element={<ProtectedCoachRoute><CoachAnnouncementsPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/equipment" element={<ProtectedCoachRoute><EquipmentPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/lost-and-found" element={<ProtectedCoachRoute><CoachLostAndFoundPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/profile" element={<ProtectedCoachRoute><CoachProfilePage /></ProtectedCoachRoute>} />
+        <Route path="/coach/settings" element={<ProtectedCoachRoute><CoachSettingsPage /></ProtectedCoachRoute>} />
+        <Route path="/coach/help" element={<ProtectedCoachRoute><CoachHelpPage /></ProtectedCoachRoute>} />
         <Route path="/admin/dashboard" element={<ProtectedAdminRoute><AdminDashboard /></ProtectedAdminRoute>} />
         <Route path="/admin/members" element={<ProtectedAdminRoute><AdminMembersPage /></ProtectedAdminRoute>} />
         <Route path="/admin/coaches" element={<ProtectedAdminRoute><AdminCoachesPage /></ProtectedAdminRoute>} />

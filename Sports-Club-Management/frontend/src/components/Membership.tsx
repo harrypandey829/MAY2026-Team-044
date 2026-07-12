@@ -58,7 +58,7 @@ const benefits = [
 ];
 
 export default function Membership() {
-  const { ref, visible } = useReveal();
+  const { ref } = useReveal();
 
   return (
     <section id="membership" className="relative overflow-hidden bg-mesh py-20 lg:py-28">

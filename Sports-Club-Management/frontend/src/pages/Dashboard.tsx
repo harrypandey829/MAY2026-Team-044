@@ -5,6 +5,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
   Clock3,
   Dumbbell,
   LifeBuoy,
@@ -21,7 +22,6 @@ import {
   Trophy,
   UserCircle2,
   Users,
-  Waves,
 } from 'lucide-react';
 import Sidebar from '../components/dashboard/Sidebar';
 import DashboardCard from '../components/dashboard/DashboardCard';
@@ -61,16 +61,6 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
-
-  const role = getDemoRole();
-
-  if (!isDemoAuthenticated()) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (role !== 'member') {
-    return <Navigate to="/coach/dashboard" replace />;
-  }
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -126,6 +116,16 @@ export default function Dashboard() {
     [],
   );
 
+  const role = getDemoRole();
+
+  if (!isDemoAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (role !== 'member') {
+    return <Navigate to="/coach/dashboard" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-background text-slate-900">
       <div className="mx-auto flex max-w-7xl gap-4 px-3 py-3 lg:px-4 lg:py-4">
@@ -159,7 +159,11 @@ export default function Dashboard() {
                   <Search className="h-4 w-4" />
                   <input className="w-full bg-transparent outline-none" placeholder="Search" />
                 </label>
-                <button type="button" className="relative rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-100">
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard/announcements')}
+                  className="relative rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-100"
+                >
                   <Bell className="h-5 w-5" />
                   <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-pitch-500" />
                 </button>
@@ -183,7 +187,7 @@ export default function Dashboard() {
                   </button>
                   {profileOpen && (
                     <div className="absolute right-0 z-50 mt-2 w-56 rounded-[1.2rem] border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10">
-                      <button type="button" onClick={() => { setProfileOpen(false); navigate('/dashboard/my-profile'); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+                      <button type="button" onClick={() => { setProfileOpen(false); navigate('/dashboard/profile'); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
                         <UserCircle2 className="h-4 w-4 text-brand-600" /> My Profile
                       </button>
                       <button type="button" onClick={() => { setProfileOpen(false); navigate('/dashboard/edit-profile'); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
@@ -192,9 +196,39 @@ export default function Dashboard() {
                       <button type="button" onClick={() => { setProfileOpen(false); navigate('/dashboard/settings'); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
                         <SettingsIcon className="h-4 w-4 text-brand-600" /> Settings
                       </button>
-                      <button type="button" className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
-                        <LifeBuoy className="h-4 w-4 text-brand-600" /> Help & Support
-                      </button>
+                      <div className="group relative">
+                        <button type="button" onClick={() => { setProfileOpen(false); navigate('/dashboard/help'); }} className="flex w-full items-center justify-between rounded-2xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+                          <span className="flex items-center gap-3">
+                            <LifeBuoy className="h-4 w-4 text-brand-600" /> Help & Support
+                          </span>
+                          <ChevronLeft className="h-4 w-4 text-slate-400 group-hover:-translate-x-0.5 transition-transform" />
+                        </button>
+                        
+                        {/* Hover Submenu */}
+                        <div className="absolute right-full top-0 mr-2 w-48 hidden group-hover:block rounded-[1.2rem] border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 animate-in fade-in slide-in-from-right-2 duration-200">
+                          <button
+                            type="button"
+                            onClick={() => { setProfileOpen(false); navigate('/dashboard/help?tab=ticket'); }}
+                            className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-brand-600"
+                          >
+                            Raise Ticket
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setProfileOpen(false); navigate('/dashboard/help?tab=track'); }}
+                            className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-brand-600"
+                          >
+                            Track Requests
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setProfileOpen(false); navigate('/dashboard/help?tab=contact'); }}
+                            className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-brand-600"
+                          >
+                            Contact Administration
+                          </button>
+                        </div>
+                      </div>
                       <button type="button" onClick={() => { setProfileOpen(false); handleLogout(); }} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
                         <LogOut className="h-4 w-4 text-brand-600" /> Logout
                       </button>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, CheckCircle2, Filter, Search, XCircle } from 'lucide-react';
+import { ArrowRight, Filter, Search } from 'lucide-react';
 
 interface MemberRow {
   name: string;

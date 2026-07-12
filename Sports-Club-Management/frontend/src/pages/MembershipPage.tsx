@@ -1,4 +1,4 @@
-import { CreditCard, Crown, ShieldCheck, Sparkles, TrendingUp, CalendarDays, CheckCircle2, ArrowRight, BadgeCheck, Bell } from 'lucide-react';
+import { Crown, ShieldCheck, TrendingUp, CalendarDays, CheckCircle2, ArrowRight, BadgeCheck, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MembershipStat from '../components/membership/MembershipStat';
 

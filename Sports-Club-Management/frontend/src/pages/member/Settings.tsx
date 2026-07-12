@@ -1,8 +1,20 @@
+import { useState } from 'react';
 import { Settings as SettingsIcon, Sparkles } from 'lucide-react';
 import MemberLayout from '../../components/member/MemberLayout';
 import PageCard from '../../components/member/PageCard';
 
 export default function SettingsPage() {
+  const [preferences, setPreferences] = useState<Record<string, boolean>>({
+    'Email reminders': true,
+    'Push notifications': true,
+    'Weekly summary': false,
+    'Event updates': true,
+  });
+
+  const togglePreference = (setting: string) => {
+    setPreferences((prev) => ({ ...prev, [setting]: !prev[setting] }));
+  };
+
   return (
     <MemberLayout>
       <section className="rounded-[2rem] border border-sky-200/70 bg-gradient-to-r from-sky-100 via-white to-emerald-50 p-6 text-slate-900 shadow-xl shadow-sky-100/80 sm:p-8">
@@ -18,7 +30,17 @@ export default function SettingsPage() {
           {['Email reminders', 'Push notifications', 'Weekly summary', 'Event updates'].map((setting) => (
             <div key={setting} className="flex items-center justify-between rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
               <p className="text-sm font-semibold text-slate-800">{setting}</p>
-              <button type="button" className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">On</button>
+              <button
+                type="button"
+                onClick={() => togglePreference(setting)}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+                  preferences[setting]
+                    ? 'bg-gradient-to-r from-brand-500 to-emerald-500 text-white shadow-md shadow-sky-300/20'
+                    : 'border border-slate-200 bg-white text-slate-600'
+                }`}
+              >
+                {preferences[setting] ? 'On' : 'Off'}
+              </button>
             </div>
           ))}
         </div>

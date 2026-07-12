@@ -1,4 +1,4 @@
-import { CalendarDays, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import CoachPortalLayout from '../../components/coach-dashboard/CoachPortalLayout';
 import CoachCalendar from '../../components/coach-dashboard/CoachCalendar';
 

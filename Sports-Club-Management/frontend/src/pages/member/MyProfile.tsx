@@ -1,4 +1,4 @@
-import { Camera, Mail, MapPin, Phone, ShieldCheck, Sparkles, UserCircle2 } from 'lucide-react';
+import { Camera, Mail, MapPin, Phone, ShieldCheck, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MemberLayout from '../../components/member/MemberLayout';
 import PageCard from '../../components/member/PageCard';

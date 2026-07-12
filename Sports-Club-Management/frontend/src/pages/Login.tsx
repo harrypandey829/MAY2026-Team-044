@@ -21,24 +21,32 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
 
-  function validate() {
+  function validateValues(emailVal: string, passwordVal: string) {
     const next: FieldErrors = {};
-    if (!email) next.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = 'Enter a valid email address';
-    if (!password) next.password = 'Password is required';
-    else if (password.length < 6) next.password = 'Password must be at least 6 characters';
+    if (!emailVal) next.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) next.email = 'Enter a valid email address';
+    if (!passwordVal) next.password = 'Password is required';
+    else if (passwordVal.length < 6) next.password = 'Password must be at least 6 characters';
     return next;
+  }
+
+  function validate() {
+    return validateValues(email, password);
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    const next = validate();
+    const formEl = e.currentTarget as HTMLFormElement;
+    const emailVal = (formEl.elements.namedItem('email') as HTMLInputElement)?.value ?? '';
+    const passwordVal = (formEl.elements.namedItem('password') as HTMLInputElement)?.value ?? '';
+
+    const next = validateValues(emailVal, passwordVal);
     setErrors(next);
     setTouched({ email: true, password: true });
     if (Object.keys(next).length === 0) {
       setSubmitting(true);
       setTimeout(() => {
-        const role = loginDemoUser(email, password);
+        const role = loginDemoUser(emailVal, passwordVal);
         setSubmitting(false);
 
         if (role === 'admin') {
@@ -101,7 +109,7 @@ export default function Login() {
               }}
               onBlur={() => {
                 setTouched((p) => ({ ...p, email: true }));
-                setErrors((p) => ({ ...p, ...validate() }));
+                setErrors(validate());
               }}
               placeholder="you@example.com"
               className="w-full bg-transparent py-3.5 text-sm text-slate-900 placeholder-slate-400 outline-none"
@@ -142,7 +150,7 @@ export default function Login() {
               }}
               onBlur={() => {
                 setTouched((p) => ({ ...p, password: true }));
-                setErrors((p) => ({ ...p, ...validate() }));
+                setErrors(validate());
               }}
               placeholder="Enter your password"
               className="w-full bg-transparent py-3.5 text-sm text-slate-900 placeholder-slate-400 outline-none"

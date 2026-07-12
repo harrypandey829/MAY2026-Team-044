@@ -8,7 +8,6 @@ import {
   ClipboardCheck,
   Clock3,
   Dumbbell,
-  Edit3,
   FileText,
   LayoutDashboard,
   Mail,

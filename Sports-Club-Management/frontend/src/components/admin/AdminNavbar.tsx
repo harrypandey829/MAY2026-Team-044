@@ -43,7 +43,11 @@ export default function AdminNavbar({ onMenuClick, displayName = 'Club Administr
             <Search className="h-4 w-4" />
             <input className="w-full bg-transparent outline-none" placeholder="Search members, teams, payments" />
           </label>
-          <button type="button" className="rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-50">
+          <button
+            type="button"
+            onClick={() => navigate('/admin/announcements')}
+            className="rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-50"
+          >
             <Bell className="h-5 w-5" />
           </button>
           <button type="button" className="rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-50">
