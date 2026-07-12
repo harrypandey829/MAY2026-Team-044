@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    background-color: #F8FAFC;
+    color: #0F172A;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+  }
+  .glass-dark {
+    background: rgba(240, 249, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(125, 211, 252, 0.35);
+  }
+  .gradient-text {
+    background: linear-gradient(135deg, #38BDF8, #10B981);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .animate-on-scroll {
+    opacity: 0;
+    transform: translateY(40px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+  .animate-on-scroll.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  .bg-mesh {
+    background-color: #F8FAFC;
+    background-image:
+      radial-gradient(at 15% 20%, rgba(56, 189, 248, 0.16) 0px, transparent 50%),
+      radial-gradient(at 85% 10%, rgba(16, 185, 129, 0.12) 0px, transparent 50%),
+      radial-gradient(at 75% 80%, rgba(56, 189, 248, 0.10) 0px, transparent 50%),
+      radial-gradient(at 20% 90%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+  }
+  .bg-mesh-dark {
+    background-color: #F8FAFC;
+    background-image:
+      radial-gradient(at 15% 20%, rgba(56, 189, 248, 0.24) 0px, transparent 50%),
+      radial-gradient(at 85% 10%, rgba(16, 185, 129, 0.18) 0px, transparent 50%),
+      radial-gradient(at 75% 80%, rgba(56, 189, 248, 0.16) 0px, transparent 50%),
+      radial-gradient(at 20% 90%, rgba(16, 185, 129, 0.14) 0px, transparent 50%);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

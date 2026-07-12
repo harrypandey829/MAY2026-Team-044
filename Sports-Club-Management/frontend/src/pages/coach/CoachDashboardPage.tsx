@@ -1,0 +1,151 @@
+import { BookOpen, CalendarDays, ClipboardCheck, Clock3, MessageSquareText, Trophy, Users, Waves } from 'lucide-react';
+import CoachPortalLayout from '../../components/coach-dashboard/CoachPortalLayout';
+import CoachRosterTable from '../../components/coach-dashboard/CoachRosterTable';
+import CoachCalendar from '../../components/coach-dashboard/CoachCalendar';
+import CoachSummaryCard from '../../components/coach-dashboard/CoachSummaryCard';
+
+const summaryCards = [
+  { title: 'Total Players', value: '24', subtitle: '2 new sign-ups', icon: <Users className="h-5 w-5" />, accent: 'bg-gradient-to-br from-brand-500 to-emerald-500', trend: '+8%' },
+  { title: 'Upcoming Sessions', value: '6', subtitle: '2 high intensity', icon: <Waves className="h-5 w-5" />, accent: 'bg-gradient-to-br from-brand-500 to-emerald-500', trend: 'Live' },
+  { title: 'Upcoming Matches', value: '3', subtitle: '1 league fixture', icon: <Trophy className="h-5 w-5" />, accent: 'bg-gradient-to-br from-sky-500 to-cyan-400', trend: 'Ready' },
+  { title: 'Attendance Rate', value: '94%', subtitle: 'Above weekly target', icon: <ClipboardCheck className="h-5 w-5" />, accent: 'bg-gradient-to-br from-amber-500 to-orange-500', trend: '+4%' },
+  { title: 'Unread Announcements', value: '5', subtitle: '2 require action', icon: <MessageSquareText className="h-5 w-5" />, accent: 'bg-gradient-to-br from-emerald-500 to-green-600', trend: 'New' },
+];
+
+const teamRoster = [
+  { name: 'Mina Chen', position: 'Forward', age: 22, contact: '+1 202 555 0148', attendance: 96, status: 'Attending' as const, photo: 'MC' },
+  { name: 'Noah Brooks', position: 'Midfielder', age: 24, contact: '+1 202 555 0142', attendance: 88, status: 'Maybe' as const, photo: 'NB' },
+  { name: 'Liam Ortiz', position: 'Defender', age: 26, contact: '+1 202 555 0146', attendance: 91, status: 'Attending' as const, photo: 'LO' },
+  { name: 'Ava Patel', position: 'Goalkeeper', age: 23, contact: '+1 202 555 0143', attendance: 85, status: 'Not Attending' as const, photo: 'AP' },
+];
+
+const trainingSessions = [
+  { name: 'Strength & Conditioning', date: 'Tue, Jul 15', time: '6:30 PM', venue: 'Arena Hall A', description: 'Power-based session for match preparation.', participants: 18 },
+  { name: 'Tactical Review', date: 'Thu, Jul 17', time: '7:00 PM', venue: 'Training Room 2', description: 'Review match patterns and set pieces.', participants: 14 },
+];
+
+const calendarEvents = [
+  { title: 'Training Session', day: 12, type: 'Training' as const },
+  { title: 'League Match', day: 19, type: 'Match' as const },
+  { title: 'Tournament', day: 24, type: 'Tournament' as const },
+  { title: 'Club Holiday', day: 28, type: 'Holiday' as const },
+];
+
+export default function CoachDashboardPage() {
+  return (
+    <CoachPortalLayout>
+      <section className="rounded-[2rem] border border-sky-200/70 bg-gradient-to-r from-sky-100 via-white to-emerald-50 p-6 text-slate-900 shadow-2xl shadow-sky-100/80 sm:p-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-700">Welcome back</p>
+            <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">Good Morning, Coach Sarah!</h1>
+            <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Welcome back. Here&apos;s today&apos;s team overview and everything that needs your attention.</p>
+          </div>
+          <div className="rounded-[1.6rem] border border-sky-200 bg-white/80 p-4 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="rounded-2xl bg-sky-100 p-3 text-brand-700"><Waves className="h-6 w-6" /></div>
+              <div>
+                <p className="text-sm font-semibold">Training Focus</p>
+                <p className="text-sm text-slate-600">Match readiness</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        {summaryCards.map((card) => (
+          <CoachSummaryCard key={card.title} {...card} />
+        ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Team Overview</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">SportsClub First Team</h2>
+            </div>
+            <button type="button" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-300/40">View Full Team</button>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
+              <p className="text-sm font-semibold text-slate-500">Sport</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">Football</p>
+              <p className="mt-2 text-sm text-slate-500">24 players • 2 assistant coaches</p>
+            </div>
+            <div className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
+              <p className="text-sm font-semibold text-slate-500">Team Details</p>
+              <p className="mt-2 text-lg font-semibold text-slate-900">Assistant Coach: Maya</p>
+              <p className="mt-2 text-sm text-slate-500">Captain: Liam Ortiz</p>
+              <p className="mt-2 text-sm text-slate-500">Average Attendance: 94%</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Quick Actions</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">Keep the team moving</h2>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3">
+            {['Create Training Session', 'Schedule Match', 'Take Attendance', 'Post Announcement', 'View Team Calendar'].map((action) => (
+              <button key={action} type="button" className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-slate-100">{action}</button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Team Roster</p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">Active players</h2>
+          </div>
+          <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">View Profile</button>
+        </div>
+        <div className="mt-5">
+          <CoachRosterTable players={teamRoster} />
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Training Sessions</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">Upcoming practice sessions</h2>
+            </div>
+            <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">Create Session</button>
+          </div>
+          <div className="mt-5 grid gap-4">
+            {trainingSessions.map((session) => (
+              <div key={session.name} className="rounded-[1.5rem] border border-slate-200/70 bg-slate-50/80 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">{session.name}</h3>
+                    <p className="mt-2 text-sm text-slate-500">{session.description}</p>
+                  </div>
+                  <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">{session.participants} participants</span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
+                  <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-brand-600" /> {session.date}</p>
+                  <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-pitch-600" /> {session.time}</p>
+                  <p className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-amber-600" /> {session.venue}</p>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button type="button" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white">Edit</button>
+                  <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <CoachCalendar events={calendarEvents} />
+      </section>
+    </CoachPortalLayout>
+  );
+}
