@@ -63,8 +63,8 @@ export default function AdminSidebar({ isOpen, onClose, collapsed, onToggleColla
 
       <motion.aside
         initial={false}
-        animate={{ x: isOpen || !window.innerWidth < 1024 ? 0 : -320 }}
-        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col border-r border-slate-200/70 bg-white/90 px-4 py-4 shadow-2xl shadow-sky-100/80 backdrop-blur-xl transition-all lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${collapsed ? 'lg:w-20' : 'lg:w-72'}`}
+        animate={{ x: isOpen || window.innerWidth >= 1024 ? 0 : -320 }}
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-72 flex-col border-r border-slate-200/70 bg-white/90 px-4 py-4 shadow-2xl shadow-sky-100/80 backdrop-blur-xl transition-all lg:fixed lg:top-0 lg:h-screen lg:translate-x-0 ${collapsed ? 'lg:w-20' : 'lg:w-72'}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

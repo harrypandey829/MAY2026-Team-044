@@ -1,4 +1,4 @@
-import { BadgeCheck, CreditCard, FolderKanban, ShieldCheck } from 'lucide-react';
+import { CreditCard, FolderKanban } from 'lucide-react';
 
 const resources = [
   { title: 'Training Hall', type: 'Facility', availability: 'Open' },

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ArrowRight, BadgeCheck, Users2 } from 'lucide-react';
+import { ArrowRight, Users2 } from 'lucide-react';
 
 interface SportCardData {
   name: string;

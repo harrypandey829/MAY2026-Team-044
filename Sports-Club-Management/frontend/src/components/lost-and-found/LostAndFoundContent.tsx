@@ -1,4 +1,5 @@
-import { Search, Sparkles, PencilLine, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Sparkles, ShieldCheck } from 'lucide-react';
 import PageCard from '../member/PageCard';
 
 export interface LostFoundItem {
@@ -12,7 +13,7 @@ export interface LostFoundItem {
   contact: string;
 }
 
-const items: LostFoundItem[] = [
+const initialItems: LostFoundItem[] = [
   {
     name: 'Blue Water Bottle',
     description: 'Found near the pool lounge after the morning session.',
@@ -53,6 +54,53 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
   const isCoach = variant === 'coach' || variant === 'admin';
   const isAdmin = variant === 'admin';
 
+  // State hooks
+  const [itemsList, setItemsList] = useState<LostFoundItem[]>(initialItems);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [defaultStatus, setDefaultStatus] = useState<'Lost' | 'Found'>('Lost');
+
+  // Form states
+  const [itemName, setItemName] = useState('');
+  const [itemDesc, setItemDesc] = useState('');
+  const [itemLoc, setItemLoc] = useState('');
+  const [itemSport, setItemSport] = useState('');
+  const [itemContact, setItemContact] = useState('');
+  const [itemReporter, setItemReporter] = useState('');
+
+  const openReportModal = (status: 'Lost' | 'Found') => {
+    setDefaultStatus(status);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemName || !itemLoc || !itemContact || !itemReporter) {
+      return;
+    }
+
+    const newItem: LostFoundItem = {
+      name: itemName,
+      description: itemDesc,
+      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      location: itemLoc,
+      status: defaultStatus,
+      reportedBy: itemReporter,
+      sport: itemSport || 'General',
+      contact: itemContact,
+    };
+
+    setItemsList((prev) => [newItem, ...prev]);
+
+    // Clear form and close modal
+    setItemName('');
+    setItemDesc('');
+    setItemLoc('');
+    setItemSport('');
+    setItemContact('');
+    setItemReporter('');
+    setIsModalOpen(false);
+  };
+
   return (
     <>
       <section className="rounded-[2rem] border border-sky-200/70 bg-gradient-to-r from-sky-100 via-white to-emerald-50 p-6 text-slate-900 shadow-xl shadow-sky-100/80 sm:p-8">
@@ -71,14 +119,26 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
 
       <PageCard title="Report items" subtitle="Quick actions">
         <div className="flex flex-wrap gap-3">
-          <button type="button" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white">
+          <button
+            type="button"
+            onClick={() => openReportModal('Lost')}
+            className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+          >
             Report Lost Item
           </button>
-          <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+          <button
+            type="button"
+            onClick={() => openReportModal('Found')}
+            className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+          >
             Report Found Item
           </button>
           {isCoach && (
-            <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+            <button
+              type="button"
+              onClick={() => openReportModal('Found')}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+            >
               Update Item Status
             </button>
           )}
@@ -102,8 +162,8 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
 
       <PageCard title="Item listings" subtitle="Lost and found records">
         <div className="grid gap-3">
-          {items.map((item) => (
-            <div key={item.name} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
+          {itemsList.map((item, index) => (
+            <div key={`${item.name}-${index}`} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-slate-900">{item.name}</p>
@@ -161,6 +221,117 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
           )}
         </div>
       </PageCard>
+
+      {/* Report Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-sm">
+          <div className="relative w-full max-w-md rounded-[2rem] border border-slate-200/80 bg-white/95 p-6 shadow-2xl backdrop-blur-xl">
+            <h3 className="text-xl font-bold text-slate-900">
+              Report {defaultStatus} Item
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Enter item details below to instantly publish it to the club listings.
+            </p>
+            <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  placeholder="e.g. Wilson Tennis Racket"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                  Description *
+                </label>
+                <textarea
+                  required
+                  value={itemDesc}
+                  onChange={(e) => setItemDesc(e.target.value)}
+                  placeholder="Describe colors, marks, or specific location..."
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100 h-20 resize-none"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Location *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={itemLoc}
+                    onChange={(e) => setItemLoc(e.target.value)}
+                    placeholder="e.g. Court 3"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Sport
+                  </label>
+                  <input
+                    type="text"
+                    value={itemSport}
+                    onChange={(e) => setItemSport(e.target.value)}
+                    placeholder="e.g. Tennis"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Reporter Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={itemReporter}
+                    onChange={(e) => setItemReporter(e.target.value)}
+                    placeholder="Your name"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
+                    Contact Phone *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={itemContact}
+                    onChange={(e) => setItemContact(e.target.value)}
+                    placeholder="e.g. +1 202 555 0199"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm text-slate-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-sky-300/30 hover:opacity-95"
+                >
+                  Submit Report
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }

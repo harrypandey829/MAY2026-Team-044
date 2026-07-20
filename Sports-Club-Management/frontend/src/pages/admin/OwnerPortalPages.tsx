@@ -1,4 +1,4 @@
-import { ArrowRight, BadgeDollarSign, BarChart3, BellRing, CalendarDays, Camera, ChevronRight, CircleDollarSign, Clock3, CreditCard, FileSpreadsheet, FileText, FolderKanban, GraduationCap, LayoutGrid, Megaphone, PencilLine, Printer, Search, Settings, ShieldCheck, Sparkles, Trophy, UserCircle2, Users, Waves } from 'lucide-react';
+import { Camera, Search } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import LostAndFoundContent from '../../components/lost-and-found/LostAndFoundContent';
 

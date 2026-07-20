@@ -1,7 +1,19 @@
+import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import CoachPortalLayout from '../../components/coach-dashboard/CoachPortalLayout';
 
 export default function SettingsPage() {
+  const [preferences, setPreferences] = useState<Record<string, boolean>>({
+    'Notification Preferences': true,
+    'Privacy Settings': true,
+    'Language': true,
+    'Theme Toggle (UI only)': false,
+  });
+
+  const togglePreference = (setting: string) => {
+    setPreferences((prev) => ({ ...prev, [setting]: !prev[setting] }));
+  };
+
   return (
     <CoachPortalLayout>
       <section className="rounded-[2rem] border border-sky-200/70 bg-gradient-to-r from-sky-100 via-white to-emerald-50 p-6 text-slate-900 shadow-xl shadow-sky-100/80 sm:p-8">
@@ -22,7 +34,20 @@ export default function SettingsPage() {
           </div>
           <div className="mt-5 grid gap-3">
             {['Notification Preferences', 'Privacy Settings', 'Language', 'Theme Toggle (UI only)'].map((item) => (
-              <div key={item} className="flex items-center justify-between rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4 text-sm font-semibold text-slate-700">{item}<button type="button" className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700">On</button></div>
+              <div key={item} className="flex items-center justify-between rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4 text-sm font-semibold text-slate-700">
+                {item}
+                <button
+                  type="button"
+                  onClick={() => togglePreference(item)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
+                    preferences[item]
+                      ? 'bg-gradient-to-r from-brand-500 to-emerald-500 text-white shadow-md shadow-sky-300/20'
+                      : 'border border-slate-200 bg-white text-slate-600'
+                  }`}
+                >
+                  {preferences[item] ? 'On' : 'Off'}
+                </button>
+              </div>
             ))}
           </div>
         </div>
@@ -35,7 +60,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
-            <button type="button" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white">Save Changes</button>
+            <button type="button" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-300/30">Save Changes</button>
             <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
           </div>
           <div className="mt-4 rounded-[1.2rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700"><div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand-600" /> These controls are managed in the demo portal and can be expanded with a real backend later.</div></div>

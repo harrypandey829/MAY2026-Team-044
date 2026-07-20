@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin, Search, Sparkles, XCircle } from 'lucide-react';
+import { CalendarDays, Search, XCircle } from 'lucide-react';
 import MemberLayout from '../../components/member/MemberLayout';
 import PageCard from '../../components/member/PageCard';
 
