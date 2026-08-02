@@ -22,6 +22,14 @@ class PerformanceRepository:
 
         return performance
 
+    def get_all(
+        self,
+        db: Session
+    ):
+        stmt = select(PerformanceRecord)
+        result = db.execute(stmt)
+        return result.scalars().all()
+
     def get_by_id(
         self,
         db: Session,

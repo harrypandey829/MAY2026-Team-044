@@ -1,0 +1,261 @@
+openapi: 3.0.3
+info:
+  title: Sports Club Management System API
+  description: |
+    Comprehensive RESTful API for Sports Club Management System.
+    Supports Athletes, Coaches, and Administrators.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000/api
+    description: Local Flask Development Server
+  - url: http://localhost:8000/api/v1
+    description: Production API Endpoint Gateway
+
+paths:
+  /auth/login:
+    post:
+      summary: User Authentication & JWT Login
+      description: |
+        Validates user credentials against the user database and issues a signed JWT authentication token.
+        **Mapped User Story:** US-01 (Member Registration & Role-based Login).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: demo@sportsclub.com
+                password:
+                  type: string
+                  example: demo123
+      responses:
+        '200':
+          description: Login successful. Returns JWT token and user profile object.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/UserProfile'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '500':
+          $ref: '#/components/responses/500ServerError'
+
+  /auth/register:
+    post:
+      summary: Register New Athlete / User
+      description: |
+        Registers a new sports club member account in the database.
+        **Mapped User Story:** US-01 (Member Registration).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fullName, email, password]
+              properties:
+                fullName:
+                  type: string
+                  example: Alex Carter
+                email:
+                  type: string
+                  example: athlete@example.com
+                password:
+                  type: string
+                  example: Password@123
+                preferredSport:
+                  type: string
+                  example: Tennis
+      responses:
+        '201':
+          description: Account created successfully.
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+
+  /facilities:
+    get:
+      summary: List All Available Facilities
+      description: |
+        Fetches all sports courts, pitches, and swimming pools available for booking.
+        **Mapped User Story:** US-03 (Facility Resource Booking).
+      responses:
+        '200':
+          description: List of facility resources.
+
+  /facilities/book:
+    post:
+      summary: Book Facility Slot
+      description: |
+        Reserves a specific facility slot for a member.
+        **Mapped User Story:** US-03 (Facility Resource Booking).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [facilityId, date, timeSlot]
+              properties:
+                facilityId:
+                  type: string
+                  example: FAC-101
+                date:
+                  type: string
+                  example: 2026-08-10
+                timeSlot:
+                  type: string
+                  example: 14:00 - 15:00
+      responses:
+        '201':
+          description: Booking confirmed successfully.
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: Slot already booked by another user.
+          $ref: '#/components/responses/409Conflict'
+
+  /lost-and-found:
+    get:
+      summary: List Lost & Found Items
+      description: |
+        Fetches all reported lost and found items.
+        **Mapped User Story:** US-05 (Lost and Found Reporting).
+      responses:
+        '200':
+          description: Array of lost and found items.
+
+    post:
+      summary: Report Lost / Found Item
+      description: |
+        Submits a new lost or found item report.
+        **Mapped User Story:** US-05 (Lost and Found Reporting).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, description, location, reportedBy, contact]
+              properties:
+                name:
+                  type: string
+                  example: Blue Water Bottle
+                description:
+                  type: string
+                  example: Found near swimming pool lounge.
+                location:
+                  type: string
+                  example: Pool Lounge
+                reportedBy:
+                  type: string
+                  example: Mina R.
+                contact:
+                  type: string
+                  example: +1 202 555 0148
+      responses:
+        '201':
+          description: Report created successfully.
+
+  /coach/team:
+    get:
+      summary: Get Coach Team Roster
+      description: |
+        Fetches active squad players for the logged-in coach.
+        **Mapped User Story:** US-06 (Coach Team Roster).
+      responses:
+        '200':
+          description: List of team players.
+
+  /coach/attendance:
+    post:
+      summary: Record Session Attendance
+      description: |
+        Submits training session attendance for squad members.
+        **Mapped User Story:** US-08 (Attendance Recording).
+      responses:
+        '200':
+          description: Attendance recorded successfully.
+
+  /admin/kpis:
+    get:
+      summary: Get Executive Club KPIs
+      description: |
+        Returns executive metrics for club administrators.
+        **Mapped User Story:** US-10 (Admin Dashboard Metrics).
+      responses:
+        '200':
+          description: Dashboard metrics JSON object.
+
+components:
+  schemas:
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+
+    ErrorPayload:
+      type: object
+      properties:
+        status:
+          type: string
+          example: error
+        error:
+          type: string
+
+  responses:
+    400BadRequest:
+      description: Bad Request - Missing required parameters or invalid payload format.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
+    401Unauthorized:
+      description: Unauthorized - Invalid credentials or missing JWT token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
+    404NotFound:
+      description: Not Found - Requested resource or endpoint does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
+    409Conflict:
+      description: Conflict - Duplicate resource entry or double-booking slot conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
+    500ServerError:
+      description: Internal Server Error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorPayload'
