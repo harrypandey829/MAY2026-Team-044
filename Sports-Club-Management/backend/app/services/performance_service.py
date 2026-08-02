@@ -48,6 +48,12 @@ class PerformanceService:
             performance
         )
 
+    def get_all_performance(
+        self,
+        db: Session
+    ):
+        return self.repository.get_all(db)
+
     def get_performance_by_id(
         self,
         db: Session,
