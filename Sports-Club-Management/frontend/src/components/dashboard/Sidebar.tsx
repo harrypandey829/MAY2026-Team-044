@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -16,6 +17,8 @@ import {
   Waves,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import attendanceService from '../../services/attendanceService';
+import authService from '../../services/authService';
 
 interface SidebarItem {
   label: string;
@@ -50,6 +53,25 @@ export default function Sidebar({ activeItem, onSelect, isOpen, onClose }: Sideb
   const navigate = useNavigate();
   const location = useLocation();
   const resolvedActiveItem = activeItem || items.find((item) => item.route === location.pathname)?.label || 'Dashboard';
+  const [streakDays, setStreakDays] = useState<number | null>(null);
+
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    if (!user) return;
+    attendanceService.getMemberHistory(user.id)
+      .then((records) => {
+        let streak = 0;
+        for (let i = records.length - 1; i >= 0; i--) {
+          if (records[i].attendance_status === 'Present' || records[i].attendance_status === 'Late') {
+            streak++;
+          } else {
+            break;
+          }
+        }
+        setStreakDays(streak);
+      })
+      .catch(() => setStreakDays(0));
+  }, []);
 
   return (
     <>
@@ -101,7 +123,9 @@ export default function Sidebar({ activeItem, onSelect, isOpen, onClose }: Sideb
 
         <div className="mt-6 rounded-[1.5rem] border border-sky-200 bg-gradient-to-br from-sky-50 to-emerald-50 p-4">
           <p className="text-sm font-semibold text-slate-800">Training streak</p>
-          <p className="mt-2 text-3xl font-extrabold text-brand-700">12 days</p>
+          <p className="mt-2 text-3xl font-extrabold text-brand-700">
+            {streakDays === null ? '...' : `${streakDays} ${streakDays === 1 ? 'session' : 'sessions'}`}
+          </p>
           <p className="mt-2 text-sm text-slate-600">Keep it going with your next session.</p>
         </div>
       </aside>

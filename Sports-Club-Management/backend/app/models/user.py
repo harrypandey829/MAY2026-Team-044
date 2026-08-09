@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import String
+from sqlalchemy import String, Boolean
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped
@@ -26,9 +26,7 @@ class User(Base, UUIDMixin, TimestampMixin):
         nullable=False
     )
 
-    phone: Mapped[str | None] = mapped_column(
-        String(20)
-    )
+    phone: Mapped[str | None] = mapped_column(String(20))
 
     password_hash: Mapped[str] = mapped_column(
         String(255),
@@ -40,6 +38,19 @@ class User(Base, UUIDMixin, TimestampMixin):
         nullable=False
     )
 
-    profile_picture_url: Mapped[str | None] = mapped_column(
-        String(255)
+    profile_picture_url: Mapped[str | None] = mapped_column(String(255))
+
+    # Additional fields that exist in the existing DB schema
+    is_approved: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True
     )
+
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="Active"
+    )
+
+    sport: Mapped[str | None] = mapped_column(String(50), nullable=True)

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -26,6 +26,8 @@ import CoachRosterTable from '../components/coach-dashboard/CoachRosterTable';
 import CoachCalendar from '../components/coach-dashboard/CoachCalendar';
 import { getDemoRole } from '../utils/demoAuth';
 import { isCoachAuthenticated, logoutCoachDemoUser } from '../utils/coachDemoAuth';
+import userService from '../services/userService';
+import authService, { type AuthUser } from '../services/authService';
 
 const sidebarItems = [
   { name: 'Dashboard', icon: LayoutDashboard },
@@ -48,13 +50,6 @@ const summaryCards = [
   { title: 'Upcoming Matches', value: '3', subtitle: '1 league fixture', icon: <Trophy className="h-5 w-5" />, accent: 'bg-gradient-to-br from-sky-500 to-cyan-400', trend: 'Ready' },
   { title: 'Attendance Rate', value: '94%', subtitle: 'Above weekly target', icon: <ClipboardCheck className="h-5 w-5" />, accent: 'bg-gradient-to-br from-amber-500 to-orange-500', trend: '+4%' },
   { title: 'Unread Announcements', value: '5', subtitle: '2 require action', icon: <MessageSquareText className="h-5 w-5" />, accent: 'bg-gradient-to-br from-emerald-500 to-green-600', trend: 'New' },
-];
-
-const teamRoster = [
-  { name: 'Mina Chen', position: 'Forward', age: 22, contact: '+1 202 555 0148', attendance: 96, status: 'Attending' as const, photo: 'MC' },
-  { name: 'Noah Brooks', position: 'Midfielder', age: 24, contact: '+1 202 555 0142', attendance: 88, status: 'Maybe' as const, photo: 'NB' },
-  { name: 'Liam Ortiz', position: 'Defender', age: 26, contact: '+1 202 555 0146', attendance: 91, status: 'Attending' as const, photo: 'LO' },
-  { name: 'Ava Patel', position: 'Goalkeeper', age: 23, contact: '+1 202 555 0143', attendance: 85, status: 'Not Attending' as const, photo: 'AP' },
 ];
 
 const trainingSessions = [
@@ -126,6 +121,21 @@ export default function CoachDashboard() {
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [members, setMembers] = useState<AuthUser[]>([]);
+
+  const coachUser = authService.getCurrentUser();
+  const coachSport = (coachUser?.sport || 'Football').toLowerCase();
+
+  useEffect(() => {
+    userService.getByRole('Member')
+      .then((data) => {
+        const filtered = data.filter(
+          (m) => !m.sport || m.sport.toLowerCase().includes(coachSport) || coachSport.includes(m.sport.toLowerCase())
+        );
+        setMembers(filtered);
+      })
+      .catch(() => setMembers([]));
+  }, [coachSport]);
 
   const summary = useMemo(() => summaryCards, []);
   const role = getDemoRole();
@@ -296,12 +306,12 @@ export default function CoachDashboard() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Team Roster</p>
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">Active players</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-900">Active athletes</h2>
                 </div>
-                <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">View Profile</button>
+                <button type="button" onClick={() => navigate('/coach/team')} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">View Roster Details</button>
               </div>
               <div className="mt-5">
-                <CoachRosterTable players={teamRoster} />
+                <CoachRosterTable members={members} />
               </div>
             </section>
 

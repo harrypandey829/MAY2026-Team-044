@@ -3,6 +3,8 @@ import { Bell, ChevronDown, ChevronLeft, Dumbbell, Menu, MessageSquareText, Sear
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../dashboard/Sidebar';
 import { logoutDemoUser } from '../../utils/demoAuth';
+import authService from '../../services/authService';
+
 
 interface MemberLayoutProps {
   children: ReactNode;
@@ -99,11 +101,11 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
                     className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1.5 shadow-sm"
                   >
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-emerald-500 text-sm font-semibold text-white">
-                      A
+                      {authService.getInitials()}
                     </div>
                     <div className="hidden sm:block">
-                      <p className="text-sm font-semibold text-slate-800">Alex Carter</p>
-                      <p className="text-xs text-slate-500">Member</p>
+                      <p className="text-sm font-semibold text-slate-800">{authService.getDisplayName()}</p>
+                      <p className="text-xs text-slate-500">{authService.getCurrentUser()?.role ?? 'Member'}</p>
                     </div>
                     <ChevronDown className="mr-1 h-4 w-4 text-slate-500" />
                   </button>

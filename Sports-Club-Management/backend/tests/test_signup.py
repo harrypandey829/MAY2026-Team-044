@@ -21,7 +21,9 @@ def test_signup_success():
 
     data = response.json()
 
-    assert data["message"] == "User created successfully"
+    assert "access_token" in data
+    assert data["user"]["email"] == "signup_test_1@gmail.com"
+
 
 
 def test_duplicate_email():

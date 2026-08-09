@@ -1,79 +1,55 @@
-// Temporary frontend-only demo authentication.
-// This will be replaced with real backend authentication later.
+/**
+ * demoAuth.ts — now delegates to real backend authentication.
+ * Kept for backward compatibility with existing imports across the codebase.
+ */
+import authService from '../services/authService';
+import type { UserRole } from '../services/authService';
 
-const MEMBER_DEMO_EMAIL = 'demo@sportsclub.com';
-const MEMBER_DEMO_PASSWORD = 'demo123';
-const COACH_DEMO_EMAIL = 'democoach@sportsclub.com';
-const COACH_DEMO_PASSWORD = 'coach123';
-const ADMIN_DEMO_EMAIL = 'admin@sportsclub.com';
-const ADMIN_DEMO_PASSWORD = 'admin123';
-const DEMO_AUTH_STORAGE_KEY = 'sportsclub-demo-auth-session';
+// Legacy DemoRole type — maps to real UserRole values
+export type DemoRole = 'member' | 'coach' | 'admin';
 
-type DemoRole = 'member' | 'coach' | 'admin';
-
-interface DemoSession {
-  role: DemoRole;
-  email: string;
-  displayName: string;
+function mapRole(role: UserRole | null): DemoRole | null {
+  if (!role) return null;
+  const map: Record<UserRole, DemoRole> = {
+    Admin: 'admin',
+    Coach: 'coach',
+    Member: 'member',
+  };
+  return map[role] ?? null;
 }
 
-function persistDemoSession(session: DemoSession): void {
-  const serialized = JSON.stringify(session);
-  localStorage.setItem(DEMO_AUTH_STORAGE_KEY, serialized);
-  sessionStorage.setItem(DEMO_AUTH_STORAGE_KEY, serialized);
-}
-
-function clearDemoSession(): void {
-  localStorage.removeItem(DEMO_AUTH_STORAGE_KEY);
-  sessionStorage.removeItem(DEMO_AUTH_STORAGE_KEY);
-}
-
-export function loginDemoUser(email: string, password: string): DemoRole | null {
-  if (email === ADMIN_DEMO_EMAIL && password === ADMIN_DEMO_PASSWORD) {
-    persistDemoSession({ role: 'admin', email, displayName: 'Club Administrator' });
-    return 'admin';
-  }
-
-  if (email === MEMBER_DEMO_EMAIL && password === MEMBER_DEMO_PASSWORD) {
-    persistDemoSession({ role: 'member', email, displayName: 'Alex Carter' });
-    return 'member';
-  }
-
-  if (email === COACH_DEMO_EMAIL && password === COACH_DEMO_PASSWORD) {
-    persistDemoSession({ role: 'coach', email, displayName: 'Coach Rivera' });
-    return 'coach';
-  }
-
-  clearDemoSession();
-  return null;
-}
-
-export function getDemoSession(): DemoSession | null {
-  if (typeof window === 'undefined') return null;
-
-  const stored = localStorage.getItem(DEMO_AUTH_STORAGE_KEY) ?? sessionStorage.getItem(DEMO_AUTH_STORAGE_KEY);
-  if (!stored) return null;
-
+/** @deprecated Use authService.login() directly */
+export async function loginDemoUser(email: string, password: string): Promise<DemoRole | null> {
   try {
-    return JSON.parse(stored) as DemoSession;
+    const response = await authService.login(email, password);
+    return mapRole(response.user.role);
   } catch {
-    clearDemoSession();
     return null;
   }
 }
 
 export function isDemoAuthenticated(): boolean {
-  return getDemoSession() !== null;
+  return authService.isAuthenticated();
 }
 
 export function getDemoRole(): DemoRole | null {
-  return getDemoSession()?.role ?? null;
+  return mapRole(authService.getRole());
 }
 
 export function getDemoDisplayName(): string {
-  return getDemoSession()?.displayName ?? 'Club Administrator';
+  return authService.getDisplayName();
+}
+
+export function getDemoSession() {
+  const user = authService.getCurrentUser();
+  if (!user) return null;
+  return {
+    role: mapRole(user.role) as DemoRole,
+    email: user.email,
+    displayName: authService.getDisplayName(),
+  };
 }
 
 export function logoutDemoUser(): void {
-  clearDemoSession();
+  authService.logout();
 }

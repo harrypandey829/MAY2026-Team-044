@@ -41,6 +41,17 @@ class UserService:
             db
         )
 
+    def get_users_by_role(
+        self,
+        db: Session,
+        role: UserRole
+    ):
+        from sqlalchemy import select
+        from app.models.user import User
+
+        result = db.execute(select(User).where(User.role == role))
+        return result.scalars().all()
+
     def update_profile(
         self,
         db: Session,

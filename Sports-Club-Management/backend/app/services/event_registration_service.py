@@ -84,12 +84,9 @@ class EventRegistrationService:
                 return "event_full"
 
         registration = EventRegistration(
-
             event_id=request.event_id,
-
-            member_id=request.member_id,
-
-            registration_status=RegistrationStatus.REGISTERED
+            user_id=request.member_id,
+            status=RegistrationStatus.REGISTERED
         )
 
         return self.registration_repository.create(
@@ -102,8 +99,17 @@ class EventRegistrationService:
         db: Session,
         event_id
     ):
-
         return self.registration_repository.get_by_event(
             db,
             event_id
         )
+
+    def get_registrations_by_member(
+        self,
+        db: Session,
+        member_id
+    ):
+        return self.registration_repository.get_by_user(
+            db,
+            member_id
+        )

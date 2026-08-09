@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarDays, CreditCard, ShieldCheck, Users } from 'lucide-react';
 import AdminNavbar from '../components/admin/AdminNavbar';
@@ -11,23 +11,39 @@ import QuickActions from '../components/admin/QuickActions';
 import ResourcesPayments from '../components/admin/ResourcesPayments';
 import SportsOverview from '../components/admin/SportsOverview';
 import StatsCards from '../components/admin/StatsCards';
-import { getDemoDisplayName, logoutDemoUser } from '../utils/demoAuth';
-
-const stats = [
-  { title: 'Active Members', value: '2,840', change: '+12%', trend: 'Since last month', icon: Users },
-  { title: 'Revenue', value: '$84.2k', change: '+8.4%', trend: 'Quarter target', icon: CreditCard },
-  { title: 'Events Booked', value: '36', change: '+6%', trend: 'This month', icon: CalendarDays },
-  { title: 'Member Satisfaction', value: '94%', change: '+3%', trend: 'Well above goal', icon: ShieldCheck },
-];
+import authService from '../services/authService';
+import userService from '../services/userService';
+import eventService from '../services/eventService';
+import resourceService from '../services/resourceService';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
-  const displayName = getDemoDisplayName();
+
+  const [memberCount, setMemberCount] = useState<number>(0);
+  const [coachCount, setCoachCount] = useState<number>(0);
+  const [eventsCount, setEventsCount] = useState<number>(0);
+  const [resourceCount, setResourceCount] = useState<number>(0);
+
+  const displayName = authService.getDisplayName();
+
+  useEffect(() => {
+    userService.getByRole('Member').then((m) => setMemberCount(m.length)).catch(() => setMemberCount(0));
+    userService.getByRole('Coach').then((c) => setCoachCount(c.length)).catch(() => setCoachCount(0));
+    eventService.getAll().then((e) => setEventsCount(e.length)).catch(() => setEventsCount(0));
+    resourceService.getAll().then((r) => setResourceCount(r.length)).catch(() => setResourceCount(0));
+  }, []);
+
+  const stats = [
+    { title: 'Active Members', value: String(memberCount), change: 'Live', trend: 'Registered athletes', icon: Users },
+    { title: 'Active Coaches', value: String(coachCount), change: 'Staff', trend: 'Assigned coaches', icon: CreditCard },
+    { title: 'Events Booked', value: String(eventsCount), change: 'Live', trend: 'Scheduled events', icon: CalendarDays },
+    { title: 'Club Facilities', value: String(resourceCount), change: 'Active', trend: 'Managed assets', icon: ShieldCheck },
+  ];
 
   function handleLogout() {
-    logoutDemoUser();
+    authService.logout();
     navigate('/');
   }
 
@@ -54,7 +70,7 @@ export default function AdminDashboard() {
                   <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-600">Welcome back</p>
                   <h1 className="mt-2 text-2xl font-semibold text-slate-900 sm:text-3xl">Welcome back, {displayName}</h1>
                   <p className="mt-2 text-sm leading-7 text-slate-600 sm:text-base">
-                    Manage members, coaches, events, facilities, payments, and club operations from one place.
+                    Manage members, coaches, events, facilities, payments, and club operations with live backend data.
                   </p>
                 </div>
                 <div className="rounded-full border border-sky-200 bg-sky-50 px-3 py-2 text-sm font-medium text-brand-700">

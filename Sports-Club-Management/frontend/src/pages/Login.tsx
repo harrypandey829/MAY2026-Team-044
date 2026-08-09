@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import GoogleButton from '../components/GoogleButton';
-import { loginDemoUser } from '../utils/demoAuth';
+import authService from '../services/authService';
 
 interface FieldErrors {
   email?: string;
@@ -34,7 +34,7 @@ export default function Login() {
     return validateValues(email, password);
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const formEl = e.currentTarget as HTMLFormElement;
     const emailVal = (formEl.elements.namedItem('email') as HTMLInputElement)?.value ?? '';
@@ -45,27 +45,18 @@ export default function Login() {
     setTouched({ email: true, password: true });
     if (Object.keys(next).length === 0) {
       setSubmitting(true);
-      setTimeout(() => {
-        const role = loginDemoUser(emailVal, passwordVal);
+      setLoginError(null);
+      try {
+        const response = await authService.login(emailVal, passwordVal);
+        const role = response.user.role;
+        if (role === 'Admin') navigate('/admin/dashboard');
+        else if (role === 'Coach') navigate('/coach/dashboard');
+        else navigate('/dashboard');
+      } catch (err) {
+        setLoginError(err instanceof Error ? err.message : 'Invalid email or password.');
+      } finally {
         setSubmitting(false);
-
-        if (role === 'admin') {
-          navigate('/admin/dashboard');
-          return;
-        }
-
-        if (role === 'coach') {
-          navigate('/coach/dashboard');
-          return;
-        }
-
-        if (role === 'member') {
-          navigate('/dashboard');
-          return;
-        }
-
-        setLoginError('Invalid username or password.');
-      }, 900);
+      }
     }
   }
 
@@ -236,18 +227,12 @@ export default function Login() {
 
         <div className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-600">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-700">
-            Demo Login Credentials (Development Only)
+            Test Credentials
           </p>
-          <div className="mt-3 space-y-2">
-            <p>
-              <span className="font-semibold text-slate-800">Admin</span>
-            </p>
-            <p>
-              <span className="font-medium text-slate-700">Email:</span> admin@sportsclub.com
-            </p>
-            <p>
-              <span className="font-medium text-slate-700">Password:</span> admin123
-            </p>
+          <div className="mt-3 grid grid-cols-1 gap-1 text-xs">
+            <p><span className="font-semibold text-slate-800">Admin:</span> admin@sportsclub.com / Admin@123</p>
+            <p><span className="font-semibold text-slate-800">Coach:</span> maya.singh@sportsclub.com / Coach@123</p>
+            <p><span className="font-semibold text-slate-800">Member:</span> alex.carter@sportsclub.com / Member@123</p>
           </div>
         </div>
 

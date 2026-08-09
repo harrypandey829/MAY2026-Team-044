@@ -61,7 +61,7 @@ import MemberSettingsPage from './pages/member/Settings';
 import MyProfilePage from './pages/member/MyProfile';
 import MemberHelpPage from './pages/member/HelpPage';
 import MemberEditProfilePage from './pages/member/EditProfile';
-import { getDemoRole, isDemoAuthenticated } from './utils/demoAuth';
+import authService from './services/authService';
 
 function LandingPage() {
   return (
@@ -85,26 +85,26 @@ function LandingPage() {
 }
 
 function ProtectedMemberRoute({ children }: { children: JSX.Element }) {
-  if (!isDemoAuthenticated() || getDemoRole() !== 'member') {
+  const role = authService.getRole();
+  if (!authService.isAuthenticated() || role !== 'Member') {
     return <Navigate to="/login" replace />;
   }
-
   return children;
 }
 
 function ProtectedCoachRoute({ children }: { children: JSX.Element }) {
-  if (!isDemoAuthenticated() || getDemoRole() !== 'coach') {
+  const role = authService.getRole();
+  if (!authService.isAuthenticated() || role !== 'Coach') {
     return <Navigate to="/login" replace />;
   }
-
   return children;
 }
 
 function ProtectedAdminRoute({ children }: { children: JSX.Element }) {
-  if (!isDemoAuthenticated() || getDemoRole() !== 'admin') {
+  const role = authService.getRole();
+  if (!authService.isAuthenticated() || role !== 'Admin') {
     return <Navigate to="/login" replace />;
   }
-
   return children;
 }
 

@@ -24,16 +24,18 @@ def create_performance(request: CreatePerformanceRequest, db: Session = Depends(
 def get_all_performance(db: Session = Depends(get_db)):
     return service.repository.get_all(db)
 
+# NOTE: /member/{member_id} MUST be declared before /{performance_id}
+# to prevent FastAPI matching "member" as a UUID performance_id
+@router.get("/member/{member_id}", response_model=list[PerformanceResponse])
+def member_history(member_id: UUID, db: Session = Depends(get_db)):
+    return service.get_member_history(db, member_id)
+
 @router.get("/{performance_id}", response_model=PerformanceResponse)
 def get_performance(performance_id: UUID, db: Session = Depends(get_db)):
     performance = service.get_performance_by_id(db, performance_id)
     if performance is None:
         raise HTTPException(status_code=404, detail="Performance not found")
     return performance
-
-@router.get("/member/{member_id}", response_model=list[PerformanceResponse])
-def member_history(member_id: UUID, db: Session = Depends(get_db)):
-    return service.get_member_history(db, member_id)
 
 @router.put("/{performance_id}", response_model=PerformanceResponse)
 def update_performance(performance_id: UUID, request: UpdatePerformanceRequest, db: Session = Depends(get_db)):

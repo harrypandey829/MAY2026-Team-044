@@ -88,3 +88,17 @@ def get_registered_members(
         db,
         event_id
     )
+
+
+@router.get(
+    "/member/{member_id}",
+    response_model=list[RegistrationResponse]
+)
+def get_member_registrations(
+    member_id: UUID,
+    db: Session = Depends(get_db)
+):
+    return service.get_registrations_by_member(
+        db,
+        member_id
+    )

@@ -18,7 +18,7 @@ def test_get_user_by_id():
         }
     )
 
-    user_id = signup.json()["id"]
+    user_id = signup.json()["user"]["id"]
 
     response = client.get(
         f"/users/{user_id}"
@@ -73,7 +73,7 @@ def test_update_profile():
         }
     )
 
-    user_id = signup.json()["id"]
+    user_id = signup.json()["user"]["id"]
 
     response = client.put(
         f"/users/{user_id}",
