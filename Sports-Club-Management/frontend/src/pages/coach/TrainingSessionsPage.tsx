@@ -7,21 +7,29 @@ import authService from '../../services/authService';
 export default function TrainingSessionsPage() {
   const [sessions, setSessions] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSportFilter, setSelectedSportFilter] = useState('All');
 
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Event | null>(null);
   const [attendanceSession, setAttendanceSession] = useState<Event | null>(null);
 
+  const user = authService.getCurrentUser();
+  const defaultSport = user?.sport || 'Football';
+
   // Form Fields
   const [title, setTitle] = useState('');
+  const [sport, setSport] = useState(defaultSport);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState('06:30');
   const [endTime, setEndTime] = useState('08:00');
   const [venue, setVenue] = useState('Arena Hall A');
   const [description, setDescription] = useState('Full body conditioning and tactical drills');
 
-  const user = authService.getCurrentUser();
+  const sportsOptions = [
+    'Football', 'Basketball', 'Cricket', 'Tennis',
+    'Badminton', 'Swimming', 'Volleyball', 'Track & Field', 'Gym & Fitness'
+  ];
 
   function loadSessions() {
     setLoading(true);
@@ -39,22 +47,23 @@ export default function TrainingSessionsPage() {
 
   async function handleCreateSession(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) return;
     try {
       await eventService.create({
         title,
         event_type: 'Practice',
+        sport: sport || 'Football',
         date,
         start_time: startTime,
         end_time: endTime,
         venue,
         description,
-        created_by: user.id,
+        registration_deadline: date,
+        created_by: user?.id,
       });
       setIsCreateOpen(false);
       loadSessions();
-    } catch {
-      alert('Failed to create training session');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to create training session');
     }
   }
 
@@ -65,6 +74,7 @@ export default function TrainingSessionsPage() {
       await eventService.update(editingSession.id, {
         title,
         event_type: 'Practice',
+        sport,
         date,
         start_time: startTime,
         end_time: endTime,
@@ -91,12 +101,18 @@ export default function TrainingSessionsPage() {
   function openEditModal(session: Event) {
     setEditingSession(session);
     setTitle(session.title);
+    setSport(session.sport || defaultSport);
     setDate(session.date);
     setStartTime(session.start_time);
     setEndTime(session.end_time || '08:00');
     setVenue(session.venue);
     setDescription(session.description || '');
   }
+
+  const filteredSessions = sessions.filter((s) => {
+    if (selectedSportFilter === 'All') return true;
+    return s.sport?.toLowerCase() === selectedSportFilter.toLowerCase();
+  });
 
   return (
     <CoachPortalLayout>
@@ -105,11 +121,15 @@ export default function TrainingSessionsPage() {
           <div className="max-w-3xl">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-700">Coach Portal</p>
             <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Training Sessions</h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Plan sessions, schedule practice blocks, and track team attendance in real time.</p>
+            <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Plan sessions, schedule practice blocks, select games, and track team attendance in real time.</p>
           </div>
           <button
             type="button"
-            onClick={() => setIsCreateOpen(true)}
+            onClick={() => {
+              setTitle('');
+              setSport(defaultSport);
+              setIsCreateOpen(true);
+            }}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:scale-105"
           >
             <Plus className="h-4 w-4" /> Create Training Session
@@ -119,26 +139,39 @@ export default function TrainingSessionsPage() {
 
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Training Schedule</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-900">Active Practice Sessions</h2>
+              <h2 className="mt-1 text-xl font-semibold text-slate-900">Active Practice Sessions</h2>
             </div>
+            <select
+              value={selectedSportFilter}
+              onChange={(e) => setSelectedSportFilter(e.target.value)}
+              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 outline-none"
+            >
+              <option value="All">All Games / Sports</option>
+              {sportsOptions.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
           <div className="mt-5 grid gap-4">
             {loading ? (
               <p className="py-8 text-center text-sm text-slate-500">Loading training sessions...</p>
-            ) : sessions.length === 0 ? (
+            ) : filteredSessions.length === 0 ? (
               <div className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-6 text-center text-sm text-slate-500">
-                No practice sessions scheduled. Click &quot;Create Training Session&quot; to get started.
+                No practice sessions scheduled for selected game. Click &quot;Create Training Session&quot; to get started.
               </div>
             ) : (
-              sessions.map((session) => (
+              filteredSessions.map((session) => (
                 <div key={session.id} className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-brand-600">{session.event_type}</p>
-                      <p className="mt-1 text-lg font-semibold text-slate-900">{session.title}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-bold text-brand-700">{session.sport || 'General'}</span>
+                        <p className="text-xs font-semibold uppercase text-slate-500">{session.event_type}</p>
+                      </div>
+                      <p className="mt-1.5 text-lg font-semibold text-slate-900">{session.title}</p>
                       <p className="mt-1 text-xs text-slate-500">{session.description || 'General session'}</p>
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${session.event_status === 'Scheduled' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
@@ -199,7 +232,7 @@ export default function TrainingSessionsPage() {
             ))}
           </div>
           <div className="mt-5 rounded-[1.2rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
-            <div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-brand-600" /> All practice sessions are instantly broadcast to member portals.</div>
+            <div className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-brand-600" /> All practice sessions are tagged by game and broadcast to registered member portals.</div>
           </div>
         </div>
       </section>
@@ -215,26 +248,34 @@ export default function TrainingSessionsPage() {
             <div className="mt-4 space-y-3">
               <div>
                 <label className="text-xs font-semibold uppercase text-slate-500">Session Title</label>
-                <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Strength & Conditioning" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-brand-500" />
+                <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Strength & Tactical Drills" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none focus:border-brand-500" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold uppercase text-slate-500">Date</label>
-                  <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                  <label className="text-xs font-semibold uppercase text-slate-500">Game / Sport</label>
+                  <select value={sport} onChange={(e) => setSport(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none">
+                    {sportsOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase text-slate-500">Venue</label>
                   <input required value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="Arena Hall A" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase text-slate-500">Date</label>
+                  <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-sm outline-none" />
+                </div>
                 <div>
                   <label className="text-xs font-semibold uppercase text-slate-500">Start Time</label>
-                  <input type="time" required value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                  <input type="time" required value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-sm outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase text-slate-500">End Time</label>
-                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-sm outline-none" />
                 </div>
               </div>
               <div>
@@ -265,22 +306,30 @@ export default function TrainingSessionsPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold uppercase text-slate-500">Date</label>
-                  <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                  <label className="text-xs font-semibold uppercase text-slate-500">Game / Sport</label>
+                  <select value={sport} onChange={(e) => setSport(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none">
+                    {sportsOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase text-slate-500">Venue</label>
                   <input required value={venue} onChange={(e) => setVenue(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase text-slate-500">Date</label>
+                  <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-sm outline-none" />
+                </div>
                 <div>
                   <label className="text-xs font-semibold uppercase text-slate-500">Start Time</label>
-                  <input type="time" required value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                  <input type="time" required value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-sm outline-none" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold uppercase text-slate-500">End Time</label>
-                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2 text-sm outline-none" />
                 </div>
               </div>
               <div>

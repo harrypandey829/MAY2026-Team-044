@@ -70,29 +70,52 @@ export default function AttendancePage() {
         </PageCard>
       </div>
 
-      <PageCard title="Attendance history" subtitle={`${total} records`}>
+      <PageCard title="Attendance history" subtitle={`${total} records logged`}>
         {loading ? (
           <p className="py-6 text-center text-sm text-slate-500">Loading...</p>
         ) : records.length === 0 ? (
-          <p className="py-6 text-center text-sm text-slate-500">No attendance records yet</p>
+          <p className="py-6 text-center text-sm text-slate-500">No attendance records recorded yet by your coach.</p>
         ) : (
-          <div className="grid gap-3 md:grid-cols-3">
-            {[
-              { label: 'Attendance calendar', detail: 'Your session history and upcoming scheduled sessions', icon: CalendarDays },
-              { label: 'Monthly attendance', detail: `${attendanceRate}% attendance rate — keep it up!`, icon: TrendingUp },
-              { label: 'Total sessions', detail: `${total} sessions recorded so far this season`, icon: Clock3 },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.label} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                  <div className="flex items-center gap-2 text-brand-700"><Icon className="h-4 w-4" /> {item.label}</div>
-                  <p className="mt-2 text-sm text-slate-600">{item.detail}</p>
+          <div className="space-y-3">
+            {records.map((rec) => (
+              <div key={rec.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-full bg-brand-50 p-2 text-brand-700">
+                    <CalendarDays className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Logged Status: {rec.attendance_status}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Marked at: {new Date(rec.marked_at).toLocaleString()}
+                    </p>
+                    {rec.remarks && (
+                      <p className="mt-1 text-xs text-slate-600 italic">
+                        &quot;{rec.remarks}&quot;
+                      </p>
+                    )}
+                  </div>
                 </div>
-              );
-            })}
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    rec.attendance_status === 'Present'
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : rec.attendance_status === 'Late'
+                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : rec.attendance_status === 'Absent'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                      : 'bg-purple-100 text-purple-800 border border-purple-200'
+                  }`}
+                >
+                  {rec.attendance_status}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </PageCard>
+
     </MemberLayout>
   );
 }

@@ -9,8 +9,15 @@ class UserRepository:
     def get_user_by_id(
         self,
         db: Session,
-        user_id: str
+        user_id
     ) -> User | None:
+
+        from uuid import UUID as PyUUID
+        if isinstance(user_id, str):
+            try:
+                user_id = PyUUID(user_id)
+            except ValueError:
+                pass
 
         stmt = (
             select(User)
@@ -20,6 +27,13 @@ class UserRepository:
         result = db.execute(stmt)
 
         return result.scalar_one_or_none()
+
+    def get_by_id(
+        self,
+        db: Session,
+        user_id
+    ) -> User | None:
+        return self.get_user_by_id(db, user_id)
 
     def get_all_users(
         self,

@@ -50,11 +50,26 @@ app.include_router(ai.router)
 
 @app.on_event("startup")
 def on_startup():
-    """Auto-create all tables on startup (safe for SQLite dev environment)."""
+    """Auto-create all tables and migrate missing columns on startup (safe for SQLite dev environment)."""
+    from sqlalchemy import inspect, text
     from app.db.base import Base
     from app.db.database import engine
     import app.models  # noqa: F401 — ensures all models are imported before create_all
     Base.metadata.create_all(bind=engine)
+
+    try:
+        with engine.begin() as conn:
+            inspector = inspect(engine)
+            if "events" in inspector.get_table_names():
+                columns = [c["name"] for c in inspector.get_columns("events")]
+                if "sport" not in columns:
+                    conn.execute(text("ALTER TABLE events ADD COLUMN sport VARCHAR(50)"))
+            if "users" in inspector.get_table_names():
+                columns = [c["name"] for c in inspector.get_columns("users")]
+                if "sport" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN sport VARCHAR(255)"))
+    except Exception as e:
+        print(f"Startup migration check: {e}")
 
 
 @app.get("/health")

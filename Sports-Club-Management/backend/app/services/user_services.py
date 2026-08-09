@@ -68,15 +68,26 @@ class UserService:
 
             return None
 
-        user.first_name = request.first_name
+        if request.first_name is not None:
+            user.first_name = request.first_name
 
-        user.last_name = request.last_name
+        if request.last_name is not None:
+            user.last_name = request.last_name
 
-        user.phone = request.phone
+        if request.phone is not None:
+            user.phone = request.phone
 
-        user.profile_picture_url = (
-            request.profile_picture_url
-        )
+        if request.profile_picture_url is not None:
+            user.profile_picture_url = request.profile_picture_url
+
+        if request.sport is not None:
+            user.sport = request.sport
+
+        if request.is_approved is not None:
+            user.is_approved = request.is_approved
+
+        if request.status is not None:
+            user.status = request.status
 
         return self.user_repository.update_user(
             db,

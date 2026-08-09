@@ -112,4 +112,20 @@ class EventRegistrationService:
         return self.registration_repository.get_by_user(
             db,
             member_id
-        )
+        )
+
+    def unregister(
+        self,
+        db: Session,
+        event_id,
+        member_id
+    ):
+        existing = self.registration_repository.already_registered(
+            db,
+            event_id,
+            member_id
+        )
+        if existing is None:
+            return False
+        self.registration_repository.delete(db, existing)
+        return True

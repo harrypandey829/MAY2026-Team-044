@@ -1,5 +1,5 @@
-from datetime import date
-from datetime import time
+from datetime import date as DateType
+from datetime import time as TimeType
 from uuid import UUID
 from datetime import datetime
 
@@ -16,11 +16,11 @@ class CreateEventRequest(BaseModel):
 
     event_type: EventType
 
-    date: date
+    date: DateType
 
-    start_time: time
+    start_time: TimeType
 
-    end_time: time | None = None
+    end_time: TimeType | None = None
 
     venue: str
 
@@ -28,36 +28,40 @@ class CreateEventRequest(BaseModel):
 
     description: str | None = None
 
+    sport: str | None = None
+
     max_participants: int | None = None
 
-    registration_deadline: date | None = None
+    registration_deadline: DateType | None = None
 
-    created_by: UUID
+    created_by: UUID | str | None = None
+
 
 class UpdateEventRequest(BaseModel):
 
-    title: str
+    title: str | None = None
 
-    event_type: EventType
+    event_type: EventType | None = None
 
-    date: date
+    date: DateType | None = None
 
-    start_time: time
+    start_time: TimeType | None = None
 
-    end_time: time | None = None
+    end_time: TimeType | None = None
 
-    venue: str
+    venue: str | None = None
 
     opponent: str | None = None
 
     description: str | None = None
 
+    sport: str | None = None
+
+    event_status: str | None = None
+
     max_participants: int | None = None
 
-    registration_deadline: date | None = None
-
-
-
+    registration_deadline: DateType | None = None
 
 
 class EventResponse(BaseModel):
@@ -72,15 +76,17 @@ class EventResponse(BaseModel):
 
     description: str | None
 
+    sport: str | None = None
+
     event_type: EventType
 
     event_status: str
 
-    date: date
+    date: DateType
 
-    start_time: time
+    start_time: TimeType
 
-    end_time: time | None
+    end_time: TimeType | None
 
     venue: str
 
@@ -88,7 +94,7 @@ class EventResponse(BaseModel):
 
     max_participants: int | None
 
-    registration_deadline: date | None
+    registration_deadline: DateType | None
 
     is_registration_open: bool
 
@@ -96,5 +102,3 @@ class EventResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-    

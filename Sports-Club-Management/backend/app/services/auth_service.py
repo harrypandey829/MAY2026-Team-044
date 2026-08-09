@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.common.enums import UserRole
@@ -21,6 +22,8 @@ class AuthService:
             return None
 
         role = request.role if request.role else UserRole.MEMBER
+        is_approved = True if role != UserRole.COACH else False
+        user_status = "Active" if role != UserRole.COACH else "Pending"
 
         user = User(
             first_name=request.first_name,
@@ -29,7 +32,9 @@ class AuthService:
             phone=request.phone,
             password_hash=hash_password(request.password),
             role=role,
-            sport=request.sport
+            sport=request.sport,
+            is_approved=is_approved,
+            status=user_status
         )
 
         created_user = self.repository.create_user(db, user)
@@ -51,6 +56,18 @@ class AuthService:
 
         if not verify_password(password, user.password_hash):
             return None
+
+        if user.status == "Suspended":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account has been suspended by an administrator."
+            )
+
+        if user.role == UserRole.COACH and not user.is_approved:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your coach registration is pending admin approval."
+            )
 
         token = create_access_token({"sub": str(user.id)})
 

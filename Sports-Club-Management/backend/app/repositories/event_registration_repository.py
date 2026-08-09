@@ -97,4 +97,12 @@ class EventRegistrationRepository:
             .where(User.id == user_id)
         )
         result = db.execute(stmt)
-        return result.scalar_one_or_none()
+        return result.scalar_one_or_none()
+
+    def delete(
+        self,
+        db: Session,
+        registration: EventRegistration
+    ):
+        db.delete(registration)
+        db.commit()

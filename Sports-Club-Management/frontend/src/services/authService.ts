@@ -1,4 +1,5 @@
 import api from './api';
+import userService from './userService';
 
 export type UserRole = 'Admin' | 'Coach' | 'Member';
 
@@ -77,14 +78,20 @@ export const authService = {
       .filter((s) => s.length > 0);
   },
 
-  addEnrolledSport(sportName: string): AuthUser | null {
+  async addEnrolledSport(sportName: string): Promise<AuthUser | null> {
     const user = this.getCurrentUser();
     if (!user) return null;
     const current = this.getEnrolledSports();
     if (!current.includes(sportName)) {
       current.push(sportName);
-      const updatedUser: AuthUser = { ...user, sport: current.join(', ') };
+      const newSportStr = current.join(', ');
+      const updatedUser: AuthUser = { ...user, sport: newSportStr };
       this.updateUserLocal(updatedUser);
+      try {
+        await userService.updateProfile(user.id, { sport: newSportStr });
+      } catch (err) {
+        console.error('Failed to sync sports update to backend:', err);
+      }
       return updatedUser;
     }
     return user;

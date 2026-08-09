@@ -101,4 +101,28 @@ def get_member_registrations(
     return service.get_registrations_by_member(
         db,
         member_id
-    )
+    )
+
+
+@router.delete(
+    "/{event_id}/{member_id}",
+    status_code=200
+)
+def unregister_member(
+    event_id: UUID,
+    member_id: UUID,
+    db: Session = Depends(get_db)
+):
+    success = service.unregister(
+        db,
+        event_id,
+        member_id
+    )
+
+    if not success:
+        raise HTTPException(
+            status_code=404,
+            detail="Registration not found"
+        )
+
+    return {"message": "Successfully unregistered from event"}

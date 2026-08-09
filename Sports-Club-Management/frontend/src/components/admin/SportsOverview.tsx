@@ -41,8 +41,8 @@ export default function SportsOverview() {
         <div className="mt-5 grid gap-4 lg:grid-cols-5">
           {sportsList.map((sportName, index) => {
             const sportLower = sportName.toLowerCase();
-            const memberCount = members.filter((m) => !m.sport || m.sport.toLowerCase().includes(sportLower) || sportLower.includes(m.sport.toLowerCase())).length;
-            const coachCount = coaches.filter((c) => !c.sport || c.sport.toLowerCase().includes(sportLower) || sportLower.includes(c.sport.toLowerCase())).length;
+            const memberCount = members.filter((m) => m.sport && m.sport.toLowerCase().includes(sportLower)).length;
+            const coachCount = coaches.filter((c) => c.sport && c.sport.toLowerCase().includes(sportLower) && c.is_approved).length;
 
             return (
               <motion.div

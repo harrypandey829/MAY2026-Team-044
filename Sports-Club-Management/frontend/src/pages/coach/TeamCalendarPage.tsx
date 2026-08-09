@@ -9,15 +9,22 @@ export default function TeamCalendarPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const user = authService.getCurrentUser();
+  const defaultSport = user?.sport || 'Football';
+
   // Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [title, setTitle] = useState('');
+  const [sport, setSport] = useState(defaultSport);
   const [eventType, setEventType] = useState<'Practice' | 'Match' | 'Tournament' | 'Club Event' | 'Holiday'>('Practice');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [startTime, setStartTime] = useState('10:00');
   const [venue, setVenue] = useState('Main Stadium');
 
-  const user = authService.getCurrentUser();
+  const sportsOptions = [
+    'Football', 'Basketball', 'Cricket', 'Tennis',
+    'Badminton', 'Swimming', 'Volleyball', 'Track & Field', 'Gym & Fitness'
+  ];
 
   function loadEvents() {
     setLoading(true);
@@ -33,20 +40,21 @@ export default function TeamCalendarPage() {
 
   async function handleCreateEvent(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) return;
     try {
       await eventService.create({
         title,
         event_type: eventType,
+        sport: sport || 'Football',
         date,
         start_time: startTime,
         venue,
-        created_by: user.id,
+        registration_deadline: date,
+        created_by: user?.id,
       });
       setIsCreateOpen(false);
       loadEvents();
-    } catch {
-      alert('Failed to create calendar event');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to create calendar event');
     }
   }
 
@@ -68,7 +76,11 @@ export default function TeamCalendarPage() {
           </div>
           <button
             type="button"
-            onClick={() => setIsCreateOpen(true)}
+            onClick={() => {
+              setTitle('');
+              setSport(defaultSport);
+              setIsCreateOpen(true);
+            }}
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-lg transition-all hover:scale-105"
           >
             <Plus className="h-4 w-4" /> Create Calendar Event
@@ -113,14 +125,24 @@ export default function TeamCalendarPage() {
                 <label className="text-xs font-semibold uppercase text-slate-500">Event Title</label>
                 <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Tactical Workshop" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
               </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Event Type</label>
-                <select value={eventType} onChange={(e) => setEventType(e.target.value as typeof eventType)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none">
-                  <option value="Practice">Practice Session</option>
-                  <option value="Match">Match Fixture</option>
-                  <option value="Tournament">Tournament</option>
-                  <option value="Social">Club Event</option>
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase text-slate-500">Game / Sport</label>
+                  <select value={sport} onChange={(e) => setSport(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none">
+                    {sportsOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold uppercase text-slate-500">Event Type</label>
+                  <select value={eventType} onChange={(e) => setEventType(e.target.value as typeof eventType)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none">
+                    <option value="Practice">Practice Session</option>
+                    <option value="Match">Match Fixture</option>
+                    <option value="Tournament">Tournament</option>
+                    <option value="Social">Club Event</option>
+                  </select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

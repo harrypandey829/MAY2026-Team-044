@@ -60,21 +60,22 @@ export default function MembersTable() {
             <thead>
               <tr className="border-b border-slate-200 text-slate-500">
                 <th className="pb-3 font-semibold">Name</th>
+                <th className="pb-3 font-semibold">Enrolled Sport</th>
                 <th className="pb-3 font-semibold">Email</th>
                 <th className="pb-3 font-semibold">Phone</th>
                 <th className="pb-3 font-semibold">Status</th>
-                <th className="pb-3 font-semibold">Joined</th>
               </tr>
             </thead>
             <tbody>
               {pagedMembers.map((member) => (
                 <tr key={member.id} className="border-b border-slate-100 last:border-none">
                   <td className="py-3 font-semibold text-slate-800">{member.first_name} {member.last_name}</td>
+                  <td className="py-3 font-medium text-brand-700">{member.sport || 'Not Enrolled'}</td>
                   <td className="py-3 text-slate-600">{member.email}</td>
                   <td className="py-3 text-slate-600">{member.phone ?? '–'}</td>
                   <td className="py-3">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${member.is_approved ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                      {member.status}
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${member.status === 'Suspended' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
+                      {member.status || 'Active'}
                     </span>
                   </td>
                   <td className="py-3 text-slate-600">–</td>

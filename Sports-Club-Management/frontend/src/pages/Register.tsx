@@ -111,11 +111,15 @@ export default function Register() {
           phone: form.phone || undefined,
           password: form.password,
           role: form.role,
+          sport: form.sport,
         });
         const role = response.user.role;
         if (role === 'Admin') navigate('/admin/dashboard');
-        else if (role === 'Coach') navigate('/coach/dashboard');
-        else navigate('/dashboard');
+        else if (role === 'Coach') {
+          authService.logout();
+          alert('Coach application submitted successfully! Your account is pending admin approval before you can log in.');
+          navigate('/login');
+        } else navigate('/dashboard');
       } catch (err) {
         setRegisterError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
       } finally {

@@ -33,15 +33,19 @@ class UserResponse(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
 
-    first_name: str
+    first_name: str | None = None
 
-    last_name: str
+    last_name: str | None = None
 
     phone: str | None = None
 
     profile_picture_url: str | None = None
 
     sport: str | None = None
+
+    is_approved: bool | None = None
+
+    status: str | None = None
 
 
 

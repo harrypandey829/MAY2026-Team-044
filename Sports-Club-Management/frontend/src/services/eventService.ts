@@ -6,6 +6,7 @@ export interface Event {
   created_by: string;
   title: string;
   description: string | null;
+  sport?: string | null;
   event_type: 'Practice' | 'Match' | 'Tournament' | 'Club Event' | 'Holiday';
   event_status: 'Scheduled' | 'Cancelled' | 'Completed';
   date: string;
@@ -28,9 +29,10 @@ export interface CreateEventRequest {
   venue: string;
   opponent?: string;
   description?: string;
+  sport?: string;
   max_participants?: number;
   registration_deadline?: string;
-  created_by: string;
+  created_by?: string;
   team_id?: string;
 }
 
@@ -68,6 +70,10 @@ export const eventService = {
       event_id: eventId,
       member_id: memberId,
     });
+  },
+
+  async unregisterMember(eventId: string, memberId: string): Promise<{ message: string }> {
+    return api.delete<{ message: string }>(`/event-registrations/${eventId}/${memberId}`);
   },
 
   async getEventRegistrations(eventId: string): Promise<EventRegistration[]> {

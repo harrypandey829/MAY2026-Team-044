@@ -3,12 +3,13 @@ import { CheckCircle2, Plus, Search, X } from 'lucide-react';
 import CoachPortalLayout from '../../components/coach-dashboard/CoachPortalLayout';
 import userService from '../../services/userService';
 import eventService, { type Event } from '../../services/eventService';
-import attendanceService from '../../services/attendanceService';
+import attendanceService, { type AttendanceRecord } from '../../services/attendanceService';
 import authService, { type AuthUser } from '../../services/authService';
 
 export default function AttendancePage() {
   const [members, setMembers] = useState<AuthUser[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [eventAttendanceMap, setEventAttendanceMap] = useState<Record<string, AttendanceRecord>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -17,6 +18,8 @@ export default function AttendancePage() {
   const [selectedEventId, setSelectedEventId] = useState('');
   const [selectedMemberId, setSelectedMemberId] = useState('');
   const [attendanceStatus, setAttendanceStatus] = useState<'Present' | 'Absent' | 'Late' | 'Excused'>('Present');
+  const [remarks, setRemarks] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,20 +37,49 @@ export default function AttendancePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Fetch session attendance report when selected event changes
+  useEffect(() => {
+    if (!selectedEventId) return;
+    attendanceService.getEventReport(selectedEventId)
+      .then((records) => {
+        const map: Record<string, AttendanceRecord> = {};
+        records.forEach((r) => {
+          map[r.member_id] = r;
+        });
+        setEventAttendanceMap(map);
+      })
+      .catch(() => setEventAttendanceMap({}));
+  }, [selectedEventId]);
+
   async function handleMarkAttendance(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedEventId || !selectedMemberId) return;
     setFeedback(null);
+    setSubmitting(true);
     try {
-      await attendanceService.markAttendance({
+      const record = await attendanceService.markAttendance({
         event_id: selectedEventId,
         member_id: selectedMemberId,
         attendance_status: attendanceStatus,
+        remarks: remarks.trim() || undefined,
       });
+
+      // Update local state map immediately
+      setEventAttendanceMap((prev) => ({
+        ...prev,
+        [selectedMemberId]: record,
+      }));
+
+      const member = members.find((m) => m.id === selectedMemberId);
+      const memberName = member ? `${member.first_name} ${member.last_name}` : 'Athlete';
+
       setIsMarkModalOpen(false);
-      setFeedback('Attendance marked successfully!');
+      setRemarks('');
+      setFeedback(`Attendance successfully updated to "${attendanceStatus}" for ${memberName}!`);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to mark attendance');
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -57,6 +89,8 @@ export default function AttendancePage() {
   const filteredMembers = members
     .filter((m) => !m.sport || m.sport.toLowerCase().includes(coachSport) || coachSport.includes(m.sport.toLowerCase()))
     .filter((m) => `${m.first_name} ${m.last_name} ${m.email}`.toLowerCase().includes(search.toLowerCase()));
+
+  const selectedEvent = events.find((e) => e.id === selectedEventId);
 
   return (
     <CoachPortalLayout>
@@ -78,7 +112,7 @@ export default function AttendancePage() {
       </section>
 
       {feedback && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3.5 text-sm font-semibold text-emerald-800 flex items-center justify-between">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3.5 text-sm font-semibold text-emerald-800 flex items-center justify-between shadow-sm">
           <span className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-600" /> {feedback}</span>
           <button type="button" onClick={() => setFeedback(null)}><X className="h-4 w-4 text-emerald-700" /></button>
         </div>
@@ -121,12 +155,29 @@ export default function AttendancePage() {
       </section>
 
       <section className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Team Roster</p>
-            <h2 className="mt-2 text-xl font-semibold text-slate-900">Athletes List ({filteredMembers.length})</h2>
+            <h2 className="mt-1 text-xl font-semibold text-slate-900">
+              Athletes List ({filteredMembers.length})
+            </h2>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold uppercase text-slate-500">Active Session:</label>
+            <select
+              value={selectedEventId}
+              onChange={(e) => setSelectedEventId(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none max-w-xs"
+            >
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title} ({ev.event_type} • {eventService.formatDate(ev.date)})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
+
         <div className="mt-5 overflow-x-auto">
           {loading ? (
             <p className="py-8 text-center text-sm text-slate-500">Loading attendance data...</p>
@@ -137,29 +188,58 @@ export default function AttendancePage() {
                   <th className="px-4 py-3 font-semibold">Athlete Name</th>
                   <th className="px-4 py-3 font-semibold">Sport</th>
                   <th className="px-4 py-3 font-semibold">Email</th>
+                  <th className="px-4 py-3 font-semibold">Current Session Status</th>
                   <th className="px-4 py-3 font-semibold">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredMembers.map((m) => (
-                  <tr key={m.id} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-semibold text-slate-900">{m.first_name} {m.last_name}</td>
-                    <td className="px-4 py-3 text-slate-600">{m.sport || 'General Sports'}</td>
-                    <td className="px-4 py-3 text-slate-600">{m.email}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedMemberId(m.id);
-                          setIsMarkModalOpen(true);
-                        }}
-                        className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-3.5 py-1.5 text-xs font-semibold text-white hover:scale-105 transition-all"
-                      >
-                        Mark Attendance
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredMembers.map((m) => {
+                  const record = eventAttendanceMap[m.id];
+                  const status = record ? record.attendance_status : 'Not Marked';
+                  return (
+                    <tr key={m.id} className="border-t border-slate-100 hover:bg-slate-50/50">
+                      <td className="px-4 py-3 font-semibold text-slate-900">{m.first_name} {m.last_name}</td>
+                      <td className="px-4 py-3 text-slate-600">{m.sport || 'General Sports'}</td>
+                      <td className="px-4 py-3 text-slate-600">{m.email}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            status === 'Present'
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              : status === 'Late'
+                              ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                              : status === 'Absent'
+                              ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                              : status === 'Excused'
+                              ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          }`}
+                        >
+                          {status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedMemberId(m.id);
+                            if (record) {
+                              setAttendanceStatus(record.attendance_status);
+                              setRemarks(record.remarks || '');
+                            } else {
+                              setAttendanceStatus('Present');
+                              setRemarks('');
+                            }
+                            setIsMarkModalOpen(true);
+                          }}
+                          className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-3.5 py-1.5 text-xs font-semibold text-white hover:scale-105 transition-all shadow-sm"
+                        >
+                          {record ? 'Edit Attendance' : 'Mark Attendance'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -180,7 +260,7 @@ export default function AttendancePage() {
                 <select value={selectedEventId} onChange={(e) => setSelectedEventId(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none">
                   {events.map((ev) => (
                     <option key={ev.id} value={ev.id}>
-                      {ev.title} ({ev.event_type} • {eventService.formatDate(ev.date)})
+                      {ev.title} ({ev.sport ? ev.sport + ' • ' : ''}{ev.event_type} • {eventService.formatDate(ev.date)})
                     </option>
                   ))}
                 </select>
@@ -204,10 +284,22 @@ export default function AttendancePage() {
                   <option value="Excused">Excused</option>
                 </select>
               </div>
+              <div>
+                <label className="text-xs font-semibold uppercase text-slate-500">Remarks (Optional)</label>
+                <input
+                  type="text"
+                  value={remarks}
+                  onChange={(e) => setRemarks(e.target.value)}
+                  placeholder="e.g. Great energy, or Arrived 5 mins late"
+                  className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none"
+                />
+              </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button type="button" onClick={() => setIsMarkModalOpen(false)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
-              <button type="submit" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-2 text-sm font-semibold text-white">Submit Attendance</button>
+              <button type="submit" disabled={submitting} className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-2 text-sm font-semibold text-white">
+                {submitting ? 'Submitting...' : 'Submit Attendance'}
+              </button>
             </div>
           </form>
         </div>
@@ -215,3 +307,4 @@ export default function AttendancePage() {
     </CoachPortalLayout>
   );
 }
+

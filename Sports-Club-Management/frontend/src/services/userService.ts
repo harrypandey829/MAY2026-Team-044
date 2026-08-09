@@ -17,10 +17,13 @@ export const userService = {
   },
 
   async updateProfile(id: string, data: {
-    first_name: string;
-    last_name: string;
+    first_name?: string;
+    last_name?: string;
     phone?: string | null;
     profile_picture_url?: string | null;
+    sport?: string | null;
+    is_approved?: boolean;
+    status?: string;
   }): Promise<AuthUser> {
     return api.put<AuthUser>(`/users/${id}`, data);
   },

@@ -39,11 +39,12 @@ export default function EventsPage() {
 
   const filteredEvents = useMemo(() => {
     return events.filter((ev) => {
-      const matchesSearch = `${ev.title} ${ev.venue} ${ev.event_type}`.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = `${ev.title} ${ev.venue} ${ev.event_type} ${ev.sport || ''}`.toLowerCase().includes(search.toLowerCase());
       const matchesType = selectedType === 'All' || ev.event_type === selectedType;
 
       if (filterEnrolledOnly && enrolledSports.length > 0) {
         const matchesEnrolled = enrolledSports.some((s) =>
+          (ev.sport && ev.sport.toLowerCase().includes(s.toLowerCase())) ||
           ev.title.toLowerCase().includes(s.toLowerCase()) ||
           ev.event_type.toLowerCase().includes(s.toLowerCase()) ||
           (ev.venue && ev.venue.toLowerCase().includes(s.toLowerCase()))
@@ -65,6 +66,7 @@ export default function EventsPage() {
 
     try {
       if (isRegistered) {
+        await eventService.unregisterMember(event.id, user.id);
         setRegisteredIds((prev) => prev.filter((id) => id !== event.id));
         setSuccessMsg(`Cancelled registration for "${event.title}".`);
       } else {
@@ -73,7 +75,7 @@ export default function EventsPage() {
         setSuccessMsg(`Successfully registered for "${event.title}"!`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : 'Registration action failed');
     } finally {
       setRegistering(null);
     }
@@ -93,7 +95,7 @@ export default function EventsPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <label className="flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500">
             <Search className="h-4 w-4" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent outline-none" placeholder="Search events or venues" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent outline-none" placeholder="Search events, games or venues" />
           </label>
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -142,15 +144,18 @@ export default function EventsPage() {
                 <div key={event.id} className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-lg font-semibold text-slate-900">{event.title}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-bold text-brand-800">{event.sport || 'General Sport'}</span>
+                        <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600">{event.event_type}</span>
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-slate-900">{event.title}</p>
                       <p className="mt-1 text-sm text-slate-500">{eventService.formatDate(event.date)}</p>
                     </div>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{event.event_type}</span>
                   </div>
                   <div className="mt-4 space-y-2 text-sm text-slate-600">
                     <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-brand-600" /> {eventService.formatTime(event.start_time)}</p>
                     <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-600" /> {event.venue}</p>
-                    <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-brand-600" /> {event.event_status}</p>
+                    <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-brand-600" /> Status: {event.event_status}</p>
                   </div>
                   {isOpen && (
                     <button
@@ -158,10 +163,10 @@ export default function EventsPage() {
                       disabled={isLoading}
                       onClick={() => toggleRegistration(event)}
                       className={`mt-4 rounded-full px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-[1.02] ${
-                        isRegistered ? 'bg-slate-500 hover:bg-slate-600' : 'bg-gradient-to-r from-brand-500 to-emerald-500'
+                        isRegistered ? 'bg-slate-600 hover:bg-slate-700' : 'bg-gradient-to-r from-brand-500 to-emerald-500'
                       }`}
                     >
-                      {isLoading ? 'Processing…' : isRegistered ? 'Cancel Registration' : 'Register'}
+                      {isLoading ? 'Processing…' : isRegistered ? 'Cancel Registration' : 'Register for Event'}
                     </button>
                   )}
                 </div>

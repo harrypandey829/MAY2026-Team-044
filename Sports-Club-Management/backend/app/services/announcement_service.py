@@ -10,6 +10,10 @@ from app.schemas.announcement_schema import (
 )
 
 
+from app.models.user import User
+from app.common.enums import UserRole
+
+
 class AnnouncementService:
 
     def __init__(self):
@@ -21,14 +25,43 @@ class AnnouncementService:
         db: Session,
         request: CreateAnnouncementRequest
     ):
+        created_by_uuid = None
+        if request.created_by:
+            try:
+                if isinstance(request.created_by, UUID):
+                    created_by_uuid = request.created_by
+                else:
+                    created_by_uuid = UUID(str(request.created_by))
+            except (ValueError, TypeError):
+                created_by_uuid = None
+
+        if created_by_uuid:
+            user = db.query(User).filter(User.id == created_by_uuid).first()
+            if not user:
+                created_by_uuid = None
+
+        if not created_by_uuid:
+            first_user = db.query(User).first()
+            if first_user:
+                created_by_uuid = first_user.id
+            else:
+                admin = User(
+                    first_name="Admin",
+                    last_name="User",
+                    email="admin@sportsclub.com",
+                    password_hash="fallback_hash",
+                    role=UserRole.ADMIN,
+                    is_approved=True
+                )
+                db.add(admin)
+                db.commit()
+                db.refresh(admin)
+                created_by_uuid = admin.id
 
         announcement = Announcement(
-
             title=request.title,
-
             message=request.message,
-
-            created_by=request.created_by
+            created_by=created_by_uuid
         )
 
         return self.repository.create(

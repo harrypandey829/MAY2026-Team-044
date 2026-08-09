@@ -1,20 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BadgeCheck, CreditCard, Download, QrCode, ShieldCheck, Sparkles, UserRoundCheck, X } from 'lucide-react';
 import MemberLayout from '../../components/member/MemberLayout';
 import PageCard from '../../components/member/PageCard';
 import authService from '../../services/authService';
+import paymentService from '../../services/paymentService';
+import announcementService from '../../services/announcementService';
+import sportPlansService, { type SportPlan } from '../../services/sportPlansService';
 
 const benefits = ['Priority facility booking', 'Free recovery & mobility class', 'Guest passes included', 'Member-only tournaments'];
-
-const SPORT_PLANS: Record<string, { price: string; description: string }> = {
-  Football: { price: '₹899/month', description: 'Includes pitch access, team kits, and Friday match sessions.' },
-  Tennis: { price: '₹1,099/month', description: 'Includes court reservations, racket rentals, and weekend coaching.' },
-  Yoga: { price: '₹699/month', description: 'Includes daily morning sessions and wellness hall access.' },
-  Cricket: { price: '₹999/month', description: 'Includes nets practice, match gear, and coaching clinics.' },
-  Swimming: { price: '₹999/month', description: 'Includes aquatic centre pool access and endurance training.' },
-  Badminton: { price: '₹799/month', description: 'Includes indoor court access and singles/doubles leagues.' },
-};
 
 export default function MembershipPage() {
   const [searchParams] = useSearchParams();
@@ -24,20 +18,53 @@ export default function MembershipPage() {
   const [enrolledSports, setEnrolledSports] = useState<string[]>(() => authService.getEnrolledSports());
   const [renewed, setRenewed] = useState(false);
   const [payingSport, setPayingSport] = useState<string | null>(targetSport || null);
+  const [selectedDuration, setSelectedDuration] = useState<'Monthly' | '6-Months'>('Monthly');
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
+  const [plans, setPlans] = useState<Record<string, SportPlan>>(() => sportPlansService.getPlans());
+
+  useEffect(() => {
+    function handlePlansUpdate() {
+      setPlans(sportPlansService.getPlans());
+    }
+    window.addEventListener('sport_plans_updated', handlePlansUpdate);
+    return () => window.removeEventListener('sport_plans_updated', handlePlansUpdate);
+  }, []);
 
   const displayName = authService.getDisplayName();
   const memberId = user ? `CLB-${user.id.slice(0, 6).toUpperCase()}` : 'CLB-2048';
   const sportsJoinedText = enrolledSports.length > 0 ? enrolledSports.join(', ') : user?.sport || 'General Sports';
 
-  function handleCompletePayment(sportName: string) {
-    authService.addEnrolledSport(sportName);
+  async function handleCompletePayment(sportName: string) {
+    const planInfo = sportPlansService.getPlan(sportName);
+    const amount = selectedDuration === 'Monthly' ? planInfo.monthlyPrice : planInfo.halfYearPrice;
+
+    await authService.addEnrolledSport(sportName);
     const updated = authService.getEnrolledSports();
     setEnrolledSports(updated);
+
+    try {
+      await paymentService.create({
+        amount: String(amount),
+        payment_model: selectedDuration === 'Monthly' ? 'Monthly' : 'Annual',
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      });
+      if (user) {
+        await announcementService.create({
+          title: `New Sports Enrollment: ${sportName}`,
+          message: `${displayName} enrolled in ${sportName} (${selectedDuration} Plan - ₹${amount}).`,
+          created_by: user.id,
+        });
+      }
+    } catch (err) {
+      console.error('Payment record creation error:', err);
+    }
+
     setPayingSport(null);
-    setPaymentSuccess(`Payment Successful! You have unlocked membership and joined ${sportName}.`);
+    setPaymentSuccess(`Payment Successful! You have unlocked membership and joined ${sportName} (${selectedDuration} Plan - ₹${amount.toLocaleString('en-IN')}).`);
   }
+
+  const currentPayingPlan = payingSport ? sportPlansService.getPlan(payingSport) : null;
 
   return (
     <MemberLayout>
@@ -61,24 +88,53 @@ export default function MembershipPage() {
         </div>
       )}
 
-      {payingSport && (
+      {payingSport && currentPayingPlan && (
         <div className="rounded-[1.6rem] border border-brand-300 bg-gradient-to-r from-brand-50 via-white to-sky-50 p-6 shadow-xl shadow-brand-100/80">
           <div className="flex items-start justify-between">
             <div>
               <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold uppercase text-brand-700">Sport Membership Checkout</span>
               <h2 className="mt-2 text-2xl font-semibold text-slate-900">{payingSport} Membership Plan</h2>
               <p className="mt-1 text-sm text-slate-600">
-                {SPORT_PLANS[payingSport]?.description || 'Includes full training facilities, coach sessions, and team events.'}
+                {currentPayingPlan.description}
               </p>
             </div>
             <button type="button" onClick={() => setPayingSport(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600">
               <X className="h-5 w-5" />
             </button>
           </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <label className="text-xs font-semibold uppercase text-slate-500">Plan Duration:</label>
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white p-1">
+              <button
+                type="button"
+                onClick={() => setSelectedDuration('Monthly')}
+                className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                  selectedDuration === 'Monthly' ? 'bg-brand-500 text-white' : 'text-slate-600'
+                }`}
+              >
+                Monthly (₹{currentPayingPlan.monthlyPrice.toLocaleString('en-IN')})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedDuration('6-Months')}
+                className={`rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                  selectedDuration === '6-Months' ? 'bg-brand-500 text-white' : 'text-slate-600'
+                }`}
+              >
+                6-Months (₹{currentPayingPlan.halfYearPrice.toLocaleString('en-IN')})
+              </button>
+            </div>
+          </div>
+
           <div className="mt-5 flex items-center justify-between border-t border-slate-200/70 pt-4">
             <div>
-              <p className="text-xs uppercase text-slate-500">Plan Fee</p>
-              <p className="text-2xl font-bold text-slate-900">{SPORT_PLANS[payingSport]?.price || '₹799/month'}</p>
+              <p className="text-xs uppercase text-slate-500">Selected Plan Fee</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {selectedDuration === 'Monthly'
+                  ? `₹${currentPayingPlan.monthlyPrice.toLocaleString('en-IN')} / month`
+                  : `₹${currentPayingPlan.halfYearPrice.toLocaleString('en-IN')} / 6 months`}
+              </p>
             </div>
             <button
               type="button"
