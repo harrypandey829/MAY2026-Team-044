@@ -51,6 +51,7 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    from uuid import UUID as PyUUID
     user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(
@@ -58,8 +59,17 @@ def get_current_user(
             detail="Invalid token payload",
         )
 
-    result = db.execute(select(User).where(User.id == user_id))
+    try:
+        user_uuid = PyUUID(str(user_id))
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID in token",
+        )
+
+    result = db.execute(select(User).where(User.id == user_uuid))
     user = result.scalar_one_or_none()
+
 
     if user is None:
         raise HTTPException(

@@ -168,3 +168,78 @@ def test_wrong_old_password():
     )
 
     assert response.status_code == 400
+
+
+def test_get_users_by_role():
+    # Create member
+    client.post(
+        "/auth/signup",
+        json={
+            "first_name": "Coach",
+            "last_name": "User",
+            "email": f"{uuid4()}@coach.com",
+            "phone": "9999988888",
+            "password": "Password@123",
+            "role": "Coach"
+        }
+    )
+
+    res = client.get("/users/role/Coach")
+    assert res.status_code == 200
+    users = res.json()
+    assert isinstance(users, list)
+    assert any(u["role"] == "Coach" for u in users)
+
+
+def test_delete_user_admin_flow():
+    # 1. Non-admin signup & login
+    user_email = f"{uuid4()}@member.com"
+    signup = client.post(
+        "/auth/signup",
+        json={
+            "first_name": "Delete",
+            "last_name": "Me",
+            "email": user_email,
+            "phone": "7777777777",
+            "password": "Password@123",
+            "role": "Member"
+        }
+    )
+    target_user_id = signup.json()["user"]["id"]
+
+    # 2. Login as admin
+    admin_email = f"{uuid4()}@admin.com"
+    admin_signup = client.post(
+        "/auth/signup",
+        json={
+            "first_name": "System",
+            "last_name": "Admin",
+            "email": admin_email,
+            "phone": "1111111111",
+            "password": "Password@123",
+            "role": "Admin"
+        }
+    )
+    admin_token = admin_signup.json()["access_token"]
+    user_token = signup.json()["access_token"]
+
+    # 3. Non-admin try delete (should be 403 Forbidden)
+    forbidden_res = client.delete(
+        f"/users/{target_user_id}",
+        headers={"Authorization": f"Bearer {user_token}"}
+    )
+    assert forbidden_res.status_code == 403
+
+    # 4. Admin delete success (204 No Content)
+    delete_res = client.delete(
+        f"/users/{target_user_id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert delete_res.status_code == 204
+
+    # 5. Delete unknown user as admin (404)
+    not_found_res = client.delete(
+        f"/users/{uuid4()}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert not_found_res.status_code == 404
