@@ -85,7 +85,12 @@ class Event(Base, UUIDMixin, TimestampMixin):
     )
 
     registration_deadline: Mapped[date | None] = mapped_column(
-        Date
+        Date,
+        nullable=True
+    )
+
+    sport: Mapped[str | None] = mapped_column(
+        String(50)
     )
 
     is_registration_open: Mapped[bool] = mapped_column(

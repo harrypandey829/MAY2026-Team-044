@@ -25,35 +25,11 @@ import {
 } from 'lucide-react';
 import Sidebar from '../components/dashboard/Sidebar';
 import DashboardCard from '../components/dashboard/DashboardCard';
-import { getDemoRole, isDemoAuthenticated, logoutDemoUser } from '../utils/demoAuth';
-
-const events = [
-  { title: 'Friday Match', date: 'Fri, Jul 12', time: '7:00 PM', venue: 'North Pitch', sport: 'Football' },
-  { title: 'Training Camp', date: 'Sat, Jul 13', time: '8:30 AM', venue: 'Arena Hall A', sport: 'Badminton' },
-  { title: 'Recovery Session', date: 'Sun, Jul 14', time: '9:00 AM', venue: 'Wellness Studio', sport: 'Swimming' },
-];
-
-const announcements = [
-  { title: 'Tournament registration closes today', detail: 'Register before 8 PM to secure your squad slot.', time: '15 min ago' },
-  { title: 'Coach availability update', detail: 'Friday afternoon sessions have moved to the main court.', time: '1 hr ago' },
-  { title: 'Facility reminder', detail: 'Please bring your training kit to the pool session.', time: '3 hrs ago' },
-];
-
-const performanceMetrics = [
-  { label: 'Matches Played', value: '14', note: '+2 this month' },
-  { label: 'Goals', value: '8', note: 'Top score in your group' },
-  { label: 'Assists', value: '5', note: 'Steady passing rhythm' },
-  { label: 'Performance Trend', value: '+12%', note: 'Up from last week' },
-];
-
-const achievements = [
-  { title: 'MVP', detail: 'Best performer in the last match', icon: Trophy },
-  { title: 'Perfect Attendance', detail: '5 weeks of full attendance', icon: CheckCircle2 },
-  { title: 'Top Scorer', detail: 'Highest goals this month', icon: Target },
-  { title: 'Most Improved Player', detail: 'Greatest progress in conditioning', icon: Sparkles },
-];
-
-const attendanceTrend = [72, 78, 81, 86, 92];
+import authService from '../services/authService';
+import announcementService, { type Announcement } from '../services/announcementService';
+import eventService, { type Event } from '../services/eventService';
+import attendanceService, { type AttendanceRecord } from '../services/attendanceService';
+import performanceService, { type PerformanceRecord } from '../services/performanceService';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -61,6 +37,16 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [performanceRecords, setPerformanceRecords] = useState<PerformanceRecord[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [loadingAttendance, setLoadingAttendance] = useState(true);
+  const [loadingPerformance, setLoadingPerformance] = useState(true);
+
+  const user = authService.getCurrentUser();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -68,62 +54,183 @@ export default function Dashboard() {
         setProfileOpen(false);
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+
+    eventService.getAll()
+      .then((data) => setEvents(eventService.getUpcoming(data).slice(0, 3)))
+      .catch(() => setEvents([]))
+      .finally(() => setLoadingEvents(false));
+
+    announcementService.getAll()
+      .then((data) => setAnnouncements(data.slice(0, 3)))
+      .catch(() => setAnnouncements([]))
+      .finally(() => setLoadingAnnouncements(false));
+
+    attendanceService.getMemberHistory(user.id)
+      .then(setAttendanceRecords)
+      .catch(() => setAttendanceRecords([]))
+      .finally(() => setLoadingAttendance(false));
+
+    performanceService.getMemberHistory(user.id)
+      .then(setPerformanceRecords)
+      .catch(() => setPerformanceRecords([]))
+      .finally(() => setLoadingPerformance(false));
+  }, [user?.id]);
+
   function handleLogout() {
-    logoutDemoUser();
+    authService.logout();
     navigate('/login');
   }
+
+  // Dynamic calculations based on backend API data
+  const attendanceRate = useMemo(
+    () => attendanceService.getAttendanceRate(attendanceRecords),
+    [attendanceRecords]
+  );
+
+  const presentCount = useMemo(
+    () => attendanceRecords.filter((r) => r.attendance_status === 'Present' || r.attendance_status === 'Late').length,
+    [attendanceRecords]
+  );
+
+  const attendanceTrend = useMemo(() => {
+    if (attendanceRecords.length === 0) return [0, 0, 0, 0, 0];
+    const last5 = attendanceRecords.slice(-5);
+    const result = last5.map((r) => (r.attendance_status === 'Present' ? 100 : r.attendance_status === 'Late' ? 75 : 0));
+    while (result.length < 5) result.unshift(0);
+    return result;
+  }, [attendanceRecords]);
+
+  const streakDays = useMemo(() => {
+    let streak = 0;
+    for (let i = attendanceRecords.length - 1; i >= 0; i--) {
+      if (attendanceRecords[i].attendance_status === 'Present' || attendanceRecords[i].attendance_status === 'Late') {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
+  }, [attendanceRecords]);
+
+  const performanceTotals = useMemo(
+    () => performanceService.getTotals(performanceRecords),
+    [performanceRecords]
+  );
+
+  const performanceScore = useMemo(() => {
+    if (performanceTotals.avg_rating !== null && performanceTotals.avg_rating > 0) {
+      return `${Math.round((performanceTotals.avg_rating / 10) * 100)}%`;
+    }
+    return performanceRecords.length > 0 ? `${Math.min(100, performanceRecords.length * 20)}%` : '0%';
+  }, [performanceTotals, performanceRecords]);
+
+  const latestFeedback = useMemo(() => {
+    if (performanceRecords.length === 0) return null;
+    const withRemarks = [...performanceRecords].reverse().find((r) => r.remarks && r.remarks.trim().length > 0);
+    return withRemarks ? withRemarks.remarks : null;
+  }, [performanceRecords]);
+
+  const nextEvent = useMemo(() => (events.length > 0 ? events[0] : null), [events]);
 
   const summaryCards = useMemo(
     () => [
       {
         title: "Today's Training",
-        value: 'Strength & Conditioning',
-        subtitle: '06:30 AM • Arena Hall A',
+        value: nextEvent ? nextEvent.title : 'No Session Today',
+        subtitle: nextEvent
+          ? `${eventService.formatTime(nextEvent.start_time)} • ${nextEvent.venue}`
+          : 'Check upcoming events schedule',
         icon: <Dumbbell className="h-5 w-5" />,
         accent: 'bg-gradient-to-br from-brand-500 to-emerald-500',
-        trend: 'Live',
+        trend: nextEvent ? 'Scheduled' : 'Rest Day',
       },
       {
         title: 'Attendance %',
-        value: '92%',
-        subtitle: 'Steady progress this week',
+        value: loadingAttendance ? '...' : `${attendanceRate}%`,
+        subtitle: `${presentCount} of ${attendanceRecords.length} sessions attended`,
         icon: <Users className="h-5 w-5" />,
         accent: 'bg-gradient-to-br from-brand-500 to-emerald-500',
-        trend: '+4%',
+        trend: attendanceRecords.length > 0 ? `${presentCount}/${attendanceRecords.length}` : '0 sessions',
       },
       {
         title: 'Upcoming Events',
-        value: '3',
+        value: loadingEvents ? '...' : String(events.length),
         subtitle: 'Matches and sessions scheduled',
         icon: <CalendarDays className="h-5 w-5" />,
         accent: 'bg-gradient-to-br from-sky-500 to-cyan-400',
-        trend: 'Ready',
+        trend: events.length > 0 ? `${events.length} ready` : 'None',
       },
       {
         title: 'Performance Score',
-        value: '88%',
-        subtitle: 'Personal best this month',
+        value: loadingPerformance ? '...' : performanceScore,
+        subtitle: performanceTotals.avg_rating !== null
+          ? `Avg rating ${performanceTotals.avg_rating.toFixed(1)}/10`
+          : 'Based on coach ratings',
         icon: <TrendingUp className="h-5 w-5" />,
         accent: 'bg-gradient-to-br from-amber-500 to-orange-500',
-        trend: '+8%',
+        trend: performanceRecords.length > 0 ? `${performanceRecords.length} sessions` : 'No data',
       },
     ],
-    [],
+    [nextEvent, loadingAttendance, attendanceRate, presentCount, attendanceRecords.length, loadingEvents, events.length, loadingPerformance, performanceScore, performanceTotals.avg_rating, performanceRecords.length],
   );
 
-  const role = getDemoRole();
+  const performanceMetrics = useMemo(
+    () => [
+      { label: 'Matches Played', value: String(performanceRecords.length), note: `${performanceRecords.length} total sessions` },
+      { label: 'Goals', value: String(performanceTotals.goals), note: 'Total goals recorded' },
+      { label: 'Assists', value: String(performanceTotals.assists), note: 'Passes leading to goals' },
+      {
+        label: 'Performance Trend',
+        value: performanceTotals.avg_rating !== null ? `${performanceTotals.avg_rating.toFixed(1)} / 10` : 'N/A',
+        note: 'Average coach rating',
+      },
+    ],
+    [performanceRecords.length, performanceTotals]
+  );
 
-  if (!isDemoAuthenticated()) {
+  const achievements = useMemo(() => {
+    const list = [];
+    if (attendanceRate >= 80 && attendanceRecords.length > 0) {
+      list.push({ title: 'High Attendance', detail: `${attendanceRate}% session attendance rate`, icon: CheckCircle2 });
+    } else {
+      list.push({ title: 'Attendance Target', detail: 'Aim for 80%+ session attendance', icon: CheckCircle2 });
+    }
+
+    if (performanceTotals.goals > 0) {
+      list.push({ title: 'Goal Scorer', detail: `${performanceTotals.goals} goals recorded this season`, icon: Target });
+    } else {
+      list.push({ title: 'Active Participant', detail: 'Participate in sessions to record stats', icon: Target });
+    }
+
+    if (performanceTotals.avg_rating !== null && performanceTotals.avg_rating >= 8) {
+      list.push({ title: 'Top Performer', detail: `Achieved ${performanceTotals.avg_rating.toFixed(1)}/10 coach rating`, icon: Trophy });
+    } else {
+      list.push({ title: 'Rising Star', detail: 'Keep training to boost your coach rating', icon: Sparkles });
+    }
+
+    if (streakDays > 0) {
+      list.push({ title: 'Consistent Player', detail: `${streakDays} session attendance streak`, icon: Sparkles });
+    } else {
+      list.push({ title: 'Club Member', detail: 'Member of SportsClub community', icon: Trophy });
+    }
+    return list;
+  }, [attendanceRate, attendanceRecords.length, performanceTotals, streakDays]);
+
+  const role = authService.getRole();
+
+  if (!authService.isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
 
-  if (role !== 'member') {
-    return <Navigate to="/coach/dashboard" replace />;
+  if (role !== 'Member') {
+    if (role === 'Coach') return <Navigate to="/coach/dashboard" replace />;
+    if (role === 'Admin') return <Navigate to="/admin/dashboard" replace />;
   }
 
   return (
@@ -177,11 +284,11 @@ export default function Dashboard() {
                     className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1.5 shadow-sm"
                   >
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-emerald-500 text-sm font-semibold text-white">
-                      A
+                      {authService.getInitials()}
                     </div>
                     <div className="hidden sm:block">
-                      <p className="text-sm font-semibold text-slate-800">Alex Carter</p>
-                      <p className="text-xs text-slate-500">Member</p>
+                      <p className="text-sm font-semibold text-slate-800">{authService.getDisplayName()}</p>
+                      <p className="text-xs text-slate-500">{user?.role ?? 'Member'}</p>
                     </div>
                     <ChevronDown className="mr-1 h-4 w-4 text-slate-500" />
                   </button>
@@ -270,59 +377,68 @@ export default function Dashboard() {
                     <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-600">Today&apos;s schedule</p>
                     <h2 className="mt-2 text-xl font-semibold text-slate-900">Your main training block</h2>
                   </div>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">Today</span>
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                    {nextEvent ? 'Upcoming' : 'Rest Day'}
+                  </span>
                 </div>
 
-                <div className="mt-6 rounded-[1.6rem] border border-slate-200/70 bg-slate-50/80 p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-2xl bg-gradient-to-br from-brand-500 to-emerald-500 p-3 text-white shadow-lg shadow-sky-300/40">
-                        <Dumbbell className="h-5 w-5" />
+                {nextEvent ? (
+                  <div className="mt-6 rounded-[1.6rem] border border-slate-200/70 bg-slate-50/80 p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-2xl bg-gradient-to-br from-brand-500 to-emerald-500 p-3 text-white shadow-lg shadow-sky-300/40">
+                          <Dumbbell className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-semibold text-slate-900">{nextEvent.title}</p>
+                          <p className="text-sm text-slate-500">{eventService.formatDate(nextEvent.date)} • {nextEvent.event_type}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-lg font-semibold text-slate-900">Strength & Conditioning</p>
-                        <p className="text-sm text-slate-500">Morning session • Focus on mobility and power</p>
-                      </div>
+                      <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700">Scheduled</span>
                     </div>
-                    <span className="rounded-full bg-brand-50 px-3 py-1 text-sm font-semibold text-brand-700">Ready</span>
-                  </div>
 
-                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <Clock3 className="h-4 w-4 text-brand-600" />
-                        Time
+                    <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                          <Clock3 className="h-4 w-4 text-brand-600" />
+                          Time
+                        </div>
+                        <p className="mt-2 text-sm text-slate-600">{eventService.formatTime(nextEvent.start_time)}</p>
                       </div>
-                      <p className="mt-2 text-sm text-slate-600">06:30 AM</p>
-                    </div>
-                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <Users className="h-4 w-4 text-brand-600" />
-                        Coach
+                      <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                          <Users className="h-4 w-4 text-brand-600" />
+                          Opponent / Coach
+                        </div>
+                        <p className="mt-2 text-sm text-slate-600">{nextEvent.opponent ? `vs ${nextEvent.opponent}` : 'Club Coach'}</p>
                       </div>
-                      <p className="mt-2 text-sm text-slate-600">Coach Maya</p>
-                    </div>
-                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <MapPin className="h-4 w-4 text-brand-600" />
-                        Venue
+                      <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                          <MapPin className="h-4 w-4 text-brand-600" />
+                          Venue
+                        </div>
+                        <p className="mt-2 text-sm text-slate-600">{nextEvent.venue}</p>
                       </div>
-                      <p className="mt-2 text-sm text-slate-600">Arena Hall A</p>
-                    </div>
-                    <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <Sparkles className="h-4 w-4 text-brand-600" />
-                        Sport
+                      <div className="rounded-[1.25rem] border border-slate-200 bg-white p-4">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                          <Sparkles className="h-4 w-4 text-brand-600" />
+                          Category
+                        </div>
+                        <p className="mt-2 text-sm text-slate-600">{nextEvent.event_type}</p>
                       </div>
-                      <p className="mt-2 text-sm text-slate-600">Badminton</p>
                     </div>
-                  </div>
 
-                  <div className="mt-5 rounded-[1.25rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
-                    <p className="font-semibold text-slate-900">Equipment reminder</p>
-                    <p className="mt-1">Bring your shuttlecocks, grip tape, and water bottle to prepare for the session.</p>
+                    <div className="mt-5 rounded-[1.25rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
+                      <p className="font-semibold text-slate-900">Event Notice</p>
+                      <p className="mt-1">{nextEvent.description || 'Prepare your gear and check in before the session starts.'}</p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="mt-6 rounded-[1.6rem] border border-slate-200/70 bg-slate-50/80 p-8 text-center">
+                    <p className="text-base font-semibold text-slate-800">No scheduled sessions for today</p>
+                    <p className="mt-2 text-sm text-slate-500">Check the Events section to view and register for upcoming matches and practice sessions.</p>
+                  </div>
+                )}
               </div>
 
               <div className="rounded-[2rem] border border-white/70 bg-white/85 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl sm:p-6">
@@ -335,17 +451,23 @@ export default function Dashboard() {
                 </div>
 
                 <div className="mt-5 space-y-3">
-                  {announcements.map((item) => (
-                    <div key={item.title} className="rounded-[1.25rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                          <p className="mt-1 text-sm text-slate-600">{item.detail}</p>
+                  {loadingAnnouncements ? (
+                    <div className="py-4 text-center text-sm text-slate-500">Loading...</div>
+                  ) : announcements.length === 0 ? (
+                    <div className="py-4 text-center text-sm text-slate-500">No announcements</div>
+                  ) : (
+                    announcements.map((item) => (
+                      <div key={item.id} className="rounded-[1.25rem] border border-slate-200/70 bg-slate-50/80 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                            <p className="mt-1 text-sm text-slate-600">{item.message}</p>
+                          </div>
+                          <span className="text-xs font-medium text-slate-500">{announcementService.formatTime(item.created_at)}</span>
                         </div>
-                        <span className="text-xs font-medium text-slate-500">{item.time}</span>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </section>
@@ -356,28 +478,34 @@ export default function Dashboard() {
                   <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-600">Upcoming events</p>
                   <h2 className="mt-2 text-xl font-semibold text-slate-900">Next tournaments, matches and practice sessions</h2>
                 </div>
-                <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-brand-700">3 upcoming</span>
+                <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-brand-700">{loadingEvents ? '...' : `${events.length} upcoming`}</span>
               </div>
 
               <div className="mt-5 grid gap-4 lg:grid-cols-3">
-                {events.map((event) => (
-                  <div key={event.title} className="rounded-[1.5rem] border border-slate-200/70 bg-slate-50/80 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-lg font-semibold text-slate-900">{event.title}</p>
-                        <p className="mt-1 text-sm text-slate-500">{event.date}</p>
+                {loadingEvents ? (
+                  <div className="col-span-3 py-8 text-center text-sm text-slate-500">Loading events...</div>
+                ) : events.length === 0 ? (
+                  <div className="col-span-3 py-8 text-center text-sm text-slate-500">No upcoming events</div>
+                ) : (
+                  events.map((event) => (
+                    <div key={event.id} className="rounded-[1.5rem] border border-slate-200/70 bg-slate-50/80 p-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-lg font-semibold text-slate-900">{event.title}</p>
+                          <p className="mt-1 text-sm text-slate-500">{eventService.formatDate(event.date)}</p>
+                        </div>
+                        <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{event.event_type}</span>
                       </div>
-                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{event.sport}</span>
+                      <div className="mt-4 space-y-2 text-sm text-slate-600">
+                        <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-brand-600" /> {eventService.formatTime(event.start_time)}</p>
+                        <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-600" /> {event.venue}</p>
+                      </div>
+                      <button type="button" onClick={() => navigate('/dashboard/events')} className="mt-4 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-[1.02]">
+                        View details
+                      </button>
                     </div>
-                    <div className="mt-4 space-y-2 text-sm text-slate-600">
-                      <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-brand-600" /> {event.time}</p>
-                      <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-600" /> {event.venue}</p>
-                    </div>
-                    <button type="button" className="mt-4 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-[1.02]">
-                      View details
-                    </button>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </section>
 
@@ -386,18 +514,20 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-600">Attendance overview</p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Attendance trend this week</h2>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Attendance trend</h2>
                   </div>
-                  <div className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">92% avg</div>
+                  <div className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                    {loadingAttendance ? '...' : `${attendanceRate}% avg`}
+                  </div>
                 </div>
 
                 <div className="mt-6 flex h-40 items-end gap-3 rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
                   {attendanceTrend.map((value, index) => (
-                    <div key={value} className="flex flex-1 flex-col items-center gap-2">
+                    <div key={index} className="flex flex-1 flex-col items-center gap-2">
                       <div className="flex h-full w-full items-end rounded-full bg-slate-200 p-1">
                         <div className="w-full rounded-full bg-gradient-to-t from-brand-500 to-emerald-500" style={{ height: `${value}%` }} />
                       </div>
-                      <span className="text-xs font-medium text-slate-500">W{index + 1}</span>
+                      <span className="text-xs font-medium text-slate-500">#{index + 1}</span>
                     </div>
                   ))}
                 </div>
@@ -427,7 +557,7 @@ export default function Dashboard() {
                     Coach feedback
                   </div>
                   <p className="mt-2 text-sm leading-7 text-slate-600">
-                    “You have shown great consistency this week and your movement quality keeps improving. Keep the focus on recovery and precision.”
+                    {latestFeedback ? `“${latestFeedback}”` : 'No feedback recorded yet. Your coach will add notes after your sessions.'}
                   </p>
                 </div>
               </div>

@@ -1,38 +1,93 @@
-import { CalendarDays, Clock3, MapPin, Search, SlidersHorizontal } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { CalendarDays, CheckCircle2, Clock3, Filter, MapPin, Search, SlidersHorizontal } from 'lucide-react';
 import MemberLayout from '../../components/member/MemberLayout';
 import PageCard from '../../components/member/PageCard';
-
-const events = [
-  { id: 1, title: 'Friday Match', date: 'Fri, Jul 12', time: '7:00 PM', venue: 'North Pitch', sport: 'Football', status: 'Registered', type: 'upcoming' },
-  { id: 2, title: 'Recovery Session', date: 'Sat, Jul 13', time: '8:30 AM', venue: 'Wellness Studio', sport: 'Swimming', status: 'Open', type: 'upcoming' },
-  { id: 3, title: 'Club Dinner', date: 'Mon, Jul 08', time: '7:30 PM', venue: 'Main Hall', sport: 'Community', status: 'Completed', type: 'past' },
-];
+import eventService, { type Event } from '../../services/eventService';
+import authService from '../../services/authService';
 
 export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selectedSport, setSelectedSport] = useState('All');
-  const [registeredIds, setRegisteredIds] = useState<number[]>([1]);
+  const [selectedType, setSelectedType] = useState('All');
+  const [filterEnrolledOnly, setFilterEnrolledOnly] = useState(false);
+  const [registeredIds, setRegisteredIds] = useState<string[]>([]);
+  const [registering, setRegistering] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const user = authService.getCurrentUser();
+  const enrolledSports = useMemo(() => authService.getEnrolledSports(), []);
+
+  useEffect(() => {
+    eventService.getAll()
+      .then(setEvents)
+      .catch(() => setEvents([]))
+      .finally(() => setLoading(false));
+
+    if (user) {
+      eventService.getMemberRegistrations(user.id)
+        .then((regs) => setRegisteredIds(regs.map((r) => r.event_id)))
+        .catch(() => setRegisteredIds([]));
+    }
+  }, [user?.id]);
+
+  const eventTypes = useMemo(() => {
+    const types = new Set(events.map((e) => e.event_type));
+    return ['All', ...Array.from(types)];
+  }, [events]);
 
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
-      const matchesSearch = `${event.title} ${event.sport}`.toLowerCase().includes(search.toLowerCase());
-      const matchesSport = selectedSport === 'All' || event.sport === selectedSport;
-      return matchesSearch && matchesSport;
-    });
-  }, [search, selectedSport]);
+    return events.filter((ev) => {
+      const matchesSearch = `${ev.title} ${ev.venue} ${ev.event_type} ${ev.sport || ''}`.toLowerCase().includes(search.toLowerCase());
+      const matchesType = selectedType === 'All' || ev.event_type === selectedType;
 
-  const toggleRegistration = (id: number) => {
-    setRegisteredIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
-  };
+      if (filterEnrolledOnly && enrolledSports.length > 0) {
+        const matchesEnrolled = enrolledSports.some((s) =>
+          (ev.sport && ev.sport.toLowerCase().includes(s.toLowerCase())) ||
+          ev.title.toLowerCase().includes(s.toLowerCase()) ||
+          ev.event_type.toLowerCase().includes(s.toLowerCase()) ||
+          (ev.venue && ev.venue.toLowerCase().includes(s.toLowerCase()))
+        );
+        return matchesSearch && matchesType && matchesEnrolled;
+      }
+
+      return matchesSearch && matchesType;
+    });
+  }, [events, search, selectedType, filterEnrolledOnly, enrolledSports]);
+
+  async function toggleRegistration(event: Event) {
+    if (!user) return;
+    setRegistering(event.id);
+    setError(null);
+    setSuccessMsg(null);
+
+    const isRegistered = registeredIds.includes(event.id);
+
+    try {
+      if (isRegistered) {
+        await eventService.unregisterMember(event.id, user.id);
+        setRegisteredIds((prev) => prev.filter((id) => id !== event.id));
+        setSuccessMsg(`Cancelled registration for "${event.title}".`);
+      } else {
+        await eventService.registerMember(event.id, user.id);
+        setRegisteredIds((prev) => [...prev, event.id]);
+        setSuccessMsg(`Successfully registered for "${event.title}"!`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Registration action failed');
+    } finally {
+      setRegistering(null);
+    }
+  }
 
   return (
     <MemberLayout>
       <section className="rounded-[2rem] border border-sky-200/70 bg-gradient-to-r from-sky-100 via-white to-emerald-50 p-6 text-slate-900 shadow-xl shadow-sky-100/80 sm:p-8">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-700">Portal</p>
-          <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Events</h1>
-          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Browse upcoming events, check your registered activities, and keep track of your club calendar.</p>
+          <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Events & Sessions</h1>
+          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Browse upcoming events, check your registered activities, and stay tuned with your enrolled sports schedule.</p>
         </div>
       </section>
 
@@ -40,42 +95,84 @@ export default function EventsPage() {
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <label className="flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500">
             <Search className="h-4 w-4" />
-            <input value={search} onChange={(event) => setSearch(event.target.value)} className="w-full bg-transparent outline-none" placeholder="Search events" />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} className="w-full bg-transparent outline-none" placeholder="Search events, games or venues" />
           </label>
-          <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">
-            <SlidersHorizontal className="h-4 w-4" />
-            <select value={selectedSport} onChange={(event) => setSelectedSport(event.target.value)} className="bg-transparent outline-none">
-              <option>All</option>
-              <option>Football</option>
-              <option>Swimming</option>
-              <option>Community</option>
-            </select>
-          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFilterEnrolledOnly((prev) => !prev)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition-all ${
+                filterEnrolledOnly
+                  ? 'bg-brand-600 text-white shadow-md'
+                  : 'border border-slate-200 bg-slate-50/80 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              {filterEnrolledOnly ? 'Enrolled Sports Only' : 'All Club Events'}
+            </button>
+
+            <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-600">
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="bg-transparent outline-none">
+                {eventTypes.map((t) => <option key={t}>{t}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
 
+        {error && (
+          <div className="mt-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+        )}
+        {successMsg && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            {successMsg}
+          </div>
+        )}
+
         <div className="mt-5 grid gap-3 lg:grid-cols-2">
-          {filteredEvents.map((event) => {
-            const registered = registeredIds.includes(event.id);
-            return (
-              <div key={event.id} className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-lg font-semibold text-slate-900">{event.title}</p>
-                    <p className="mt-1 text-sm text-slate-500">{event.date}</p>
+          {loading ? (
+            <p className="col-span-2 py-8 text-center text-sm text-slate-500">Loading events...</p>
+          ) : filteredEvents.length === 0 ? (
+            <p className="col-span-2 py-8 text-center text-sm text-slate-500">No events found matching your criteria</p>
+          ) : (
+            filteredEvents.map((event) => {
+              const isRegistered = registeredIds.includes(event.id);
+              const isLoading = registering === event.id;
+              const isOpen = event.is_registration_open && event.event_status === 'Scheduled';
+              return (
+                <div key={event.id} className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-bold text-brand-800">{event.sport || 'General Sport'}</span>
+                        <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-slate-600">{event.event_type}</span>
+                      </div>
+                      <p className="mt-2 text-lg font-semibold text-slate-900">{event.title}</p>
+                      <p className="mt-1 text-sm text-slate-500">{eventService.formatDate(event.date)}</p>
+                    </div>
                   </div>
-                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600">{event.sport}</span>
+                  <div className="mt-4 space-y-2 text-sm text-slate-600">
+                    <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-brand-600" /> {eventService.formatTime(event.start_time)}</p>
+                    <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-600" /> {event.venue}</p>
+                    <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-brand-600" /> Status: {event.event_status}</p>
+                  </div>
+                  {isOpen && (
+                    <button
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => toggleRegistration(event)}
+                      className={`mt-4 rounded-full px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-[1.02] ${
+                        isRegistered ? 'bg-slate-600 hover:bg-slate-700' : 'bg-gradient-to-r from-brand-500 to-emerald-500'
+                      }`}
+                    >
+                      {isLoading ? 'Processing…' : isRegistered ? 'Cancel Registration' : 'Register for Event'}
+                    </button>
+                  )}
                 </div>
-                <div className="mt-4 space-y-2 text-sm text-slate-600">
-                  <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-brand-600" /> {event.time}</p>
-                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-600" /> {event.venue}</p>
-                  <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-brand-600" /> {event.status}</p>
-                </div>
-                <button type="button" onClick={() => toggleRegistration(event.id)} className="mt-4 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white">
-                  {registered ? 'Cancel Registration' : 'Register'}
-                </button>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </PageCard>
     </MemberLayout>

@@ -1,6 +1,6 @@
 from uuid import UUID
 from decimal import Decimal
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel
 
@@ -36,7 +36,7 @@ class PaymentResponse(BaseModel):
     invoice_status: InvoiceStatus
     due_date: date
     paid_date: date | None
-    created_at: date
+    created_at: datetime
 
     class Config:
-        from_attributes = True
+        from_attributes = True

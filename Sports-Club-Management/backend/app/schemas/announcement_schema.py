@@ -10,7 +10,7 @@ class CreateAnnouncementRequest(BaseModel):
 
     message: str
 
-    created_by: UUID
+    created_by: UUID | str | None = None
 
 
 class UpdateAnnouncementRequest(BaseModel):

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
 import {
   User,
   Mail,
@@ -30,13 +31,23 @@ interface FieldErrors {
 
 export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    fullName: string;
+    email: string;
+    phone: string;
+    password: string;
+    confirm: string;
+    sport: string;
+    role: 'Member' | 'Coach';
+    terms: boolean;
+  }>({
     fullName: '',
     email: '',
     phone: '',
     password: '',
     confirm: '',
     sport: '',
+    role: 'Member',
     terms: false,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -45,6 +56,7 @@ export default function Register() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -73,7 +85,7 @@ export default function Register() {
     setErrors((p) => ({ ...p, ...validate() }));
   }
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const next = validate();
     setErrors(next);
@@ -88,12 +100,34 @@ export default function Register() {
     });
     if (Object.keys(next).length === 0) {
       setSubmitting(true);
-      setTimeout(() => {
+      setRegisterError(null);
+      try {
+        const [firstName, ...rest] = form.fullName.trim().split(' ');
+        const lastName = rest.join(' ') || '-';
+        const response = await authService.register({
+          first_name: firstName,
+          last_name: lastName,
+          email: form.email,
+          phone: form.phone || undefined,
+          password: form.password,
+          role: form.role,
+          sport: form.sport,
+        });
+        const role = response.user.role;
+        if (role === 'Admin') navigate('/admin/dashboard');
+        else if (role === 'Coach') {
+          authService.logout();
+          alert('Coach application submitted successfully! Your account is pending admin approval before you can log in.');
+          navigate('/login');
+        } else navigate('/dashboard');
+      } catch (err) {
+        setRegisterError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+      } finally {
         setSubmitting(false);
-        navigate('/login');
-      }, 900);
+      }
     }
   }
+
 
   function fieldState(value: string, error?: string) {
     if (touched[value] && error) return 'invalid';
@@ -124,8 +158,40 @@ export default function Register() {
       statLabel="Sports offered"
     >
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 lg:mt-8" noValidate>
+        {/* Role Selector */}
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-slate-700">
+            I am joining as a
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => update('role', 'Member')}
+              className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-all ${
+                form.role === 'Member'
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 ring-2 ring-brand-100'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Member / Athlete
+            </button>
+            <button
+              type="button"
+              onClick={() => update('role', 'Coach')}
+              className={`flex items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-semibold transition-all ${
+                form.role === 'Coach'
+                  ? 'border-brand-500 bg-brand-50 text-brand-700 ring-2 ring-brand-100'
+                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Coach / Instructor
+            </button>
+          </div>
+        </div>
+
         {/* Full Name */}
         <div>
+
           <label htmlFor="fullName" className="mb-1.5 block text-sm font-semibold text-slate-700">
             Full Name
           </label>
@@ -360,6 +426,12 @@ export default function Register() {
             </p>
           )}
         </div>
+
+        {registerError && (
+          <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {registerError}
+          </div>
+        )}
 
         {/* Submit */}
         <button

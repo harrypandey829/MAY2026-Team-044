@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
   Bell,
@@ -26,6 +26,8 @@ import CoachRosterTable from '../components/coach-dashboard/CoachRosterTable';
 import CoachCalendar from '../components/coach-dashboard/CoachCalendar';
 import { getDemoRole } from '../utils/demoAuth';
 import { isCoachAuthenticated, logoutCoachDemoUser } from '../utils/coachDemoAuth';
+import userService from '../services/userService';
+import authService, { type AuthUser } from '../services/authService';
 
 const sidebarItems = [
   { name: 'Dashboard', icon: LayoutDashboard },
@@ -48,13 +50,6 @@ const summaryCards = [
   { title: 'Upcoming Matches', value: '3', subtitle: '1 league fixture', icon: <Trophy className="h-5 w-5" />, accent: 'bg-gradient-to-br from-sky-500 to-cyan-400', trend: 'Ready' },
   { title: 'Attendance Rate', value: '94%', subtitle: 'Above weekly target', icon: <ClipboardCheck className="h-5 w-5" />, accent: 'bg-gradient-to-br from-amber-500 to-orange-500', trend: '+4%' },
   { title: 'Unread Announcements', value: '5', subtitle: '2 require action', icon: <MessageSquareText className="h-5 w-5" />, accent: 'bg-gradient-to-br from-emerald-500 to-green-600', trend: 'New' },
-];
-
-const teamRoster = [
-  { name: 'Mina Chen', position: 'Forward', age: 22, contact: '+1 202 555 0148', attendance: 96, status: 'Attending' as const, photo: 'MC' },
-  { name: 'Noah Brooks', position: 'Midfielder', age: 24, contact: '+1 202 555 0142', attendance: 88, status: 'Maybe' as const, photo: 'NB' },
-  { name: 'Liam Ortiz', position: 'Defender', age: 26, contact: '+1 202 555 0146', attendance: 91, status: 'Attending' as const, photo: 'LO' },
-  { name: 'Ava Patel', position: 'Goalkeeper', age: 23, contact: '+1 202 555 0143', attendance: 85, status: 'Not Attending' as const, photo: 'AP' },
 ];
 
 const trainingSessions = [
@@ -126,6 +121,21 @@ export default function CoachDashboard() {
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [members, setMembers] = useState<AuthUser[]>([]);
+
+  const coachUser = authService.getCurrentUser();
+  const coachSport = (coachUser?.sport || 'Football').toLowerCase();
+
+  useEffect(() => {
+    userService.getByRole('Member')
+      .then((data) => {
+        const filtered = data.filter(
+          (m) => !m.sport || m.sport.toLowerCase().includes(coachSport) || coachSport.includes(m.sport.toLowerCase())
+        );
+        setMembers(filtered);
+      })
+      .catch(() => setMembers([]));
+  }, [coachSport]);
 
   const summary = useMemo(() => summaryCards, []);
   const role = getDemoRole();
@@ -286,7 +296,20 @@ export default function CoachDashboard() {
                 </div>
                 <div className="mt-4 grid gap-3">
                   {quickActions.map((action) => (
-                    <button key={action} type="button" className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-slate-100">{action}</button>
+                    <button
+                      key={action}
+                      type="button"
+                      onClick={() => {
+                        if (action === 'Take Attendance') navigate('/coach/attendance');
+                        else if (action === 'Create Training Session') navigate('/coach/training');
+                        else if (action === 'Schedule Match') navigate('/coach/matches');
+                        else if (action === 'Post Announcement') navigate('/coach/announcements');
+                        else if (action === 'View Team Calendar') navigate('/coach/calendar');
+                      }}
+                      className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-left text-sm font-semibold text-slate-700 transition-all hover:bg-slate-100"
+                    >
+                      {action}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -296,12 +319,12 @@ export default function CoachDashboard() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Team Roster</p>
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">Active players</h2>
+                  <h2 className="mt-2 text-xl font-semibold text-slate-900">Active athletes</h2>
                 </div>
-                <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">View Profile</button>
+                <button type="button" onClick={() => navigate('/coach/team')} className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">View Roster Details</button>
               </div>
               <div className="mt-5">
-                <CoachRosterTable players={teamRoster} />
+                <CoachRosterTable members={members} />
               </div>
             </section>
 
@@ -320,18 +343,13 @@ export default function CoachDashboard() {
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <h3 className="text-lg font-semibold text-slate-900">{session.name}</h3>
-                          <p className="mt-2 text-sm text-slate-500">{session.description}</p>
+                          <p className="mt-1 text-sm text-slate-500">{session.description}</p>
                         </div>
-                        <span className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700">{session.participants} participants</span>
+                        <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">{session.participants} Attending</span>
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
+                      <div className="mt-4 flex flex-wrap gap-4 text-xs font-semibold text-slate-600">
                         <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-brand-600" /> {session.date}</p>
-                        <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-pitch-600" /> {session.time}</p>
-                        <p className="flex items-center gap-2"><BookOpen className="h-4 w-4 text-amber-600" /> {session.venue}</p>
-                      </div>
-                      <div className="mt-4 flex flex-wrap gap-3">
-                        <button type="button" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white">Edit</button>
-                        <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Cancel</button>
+                        <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-brand-600" /> {session.time}</p>
                       </div>
                     </div>
                   ))}
@@ -341,22 +359,23 @@ export default function CoachDashboard() {
               <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Matches</p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Scheduled matches</h2>
+                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Matches & Fixtures</p>
+                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Upcoming matches</h2>
                   </div>
+                  <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">Schedule Match</button>
                 </div>
                 <div className="mt-5 grid gap-4">
                   {matches.map((match) => (
                     <div key={match.opponent} className="rounded-[1.5rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <h3 className="text-lg font-semibold text-slate-900">vs {match.opponent}</h3>
-                          <p className="mt-2 text-sm text-slate-500">{match.type} • {match.venue}</p>
+                          <p className="mt-1 text-sm text-slate-500">{match.type} • {match.venue}</p>
                         </div>
-                        <span className="rounded-full bg-pitch-100 px-2.5 py-1 text-xs font-semibold text-pitch-700">{match.status}</span>
+                        <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">{match.status}</span>
                       </div>
-                      <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-600">
-                        <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-brand-600" /> {match.date}</p>
+                      <div className="mt-4 flex flex-wrap gap-4 text-xs font-semibold text-slate-600">
+                        <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-pitch-600" /> {match.date}</p>
                         <p className="flex items-center gap-2"><Clock3 className="h-4 w-4 text-pitch-600" /> {match.time}</p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-3">
@@ -376,7 +395,13 @@ export default function CoachDashboard() {
                     <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Attendance Management</p>
                     <h2 className="mt-2 text-xl font-semibold text-slate-900">Session attendance overview</h2>
                   </div>
-                  <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100">Mark Attendance</button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/coach/attendance')}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+                  >
+                    Mark Attendance
+                  </button>
                 </div>
                 <div className="mt-5 overflow-x-auto">
                   <table className="min-w-full text-left text-sm">

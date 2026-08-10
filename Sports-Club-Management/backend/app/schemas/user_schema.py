@@ -21,19 +21,32 @@ class UserResponse(BaseModel):
 
     profile_picture_url: str | None
 
+    sport: str | None = None
+
+    is_approved: bool = True
+
+    status: str = "Active"
+
     class Config:
         from_attributes = True
 
 
 class UpdateProfileRequest(BaseModel):
 
-    first_name: str
+    first_name: str | None = None
 
-    last_name: str
+    last_name: str | None = None
 
     phone: str | None = None
 
     profile_picture_url: str | None = None
+
+    sport: str | None = None
+
+    is_approved: bool | None = None
+
+    status: str | None = None
+
 
 
 class PasswordResetRequest(BaseModel):

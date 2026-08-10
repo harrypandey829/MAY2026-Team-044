@@ -25,7 +25,9 @@ def test_login_success():
 
     body = response.json()
 
-    assert body["email"] == "login@gmail.com"
+    assert "access_token" in body
+    assert body["user"]["email"] == "login@gmail.com"
+
 
 def test_wrong_password():
 

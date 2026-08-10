@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { logoutCoachDemoUser } from '../../utils/coachDemoAuth';
+import authService from '../../services/authService';
 
 interface SidebarItem {
   name: string;
@@ -154,11 +155,11 @@ export default function CoachPortalLayout({ children }: CoachPortalLayoutProps) 
                   <Mail className="h-5 w-5" />
                 </button>
                 <div ref={profileMenuRef} className="relative">
-                  <button type="button" onClick={() => setProfileOpen((current) => !current)} className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2 py-1.5 shadow-sm">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-emerald-500 text-sm font-semibold text-white">S</div>
-                    <div className="hidden sm:block">
-                      <p className="text-sm font-semibold text-slate-800">Sarah Johnson</p>
-                      <p className="text-xs text-slate-500">Coach</p>
+                  <button type="button" onClick={() => setProfileOpen((current) => !current)} className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2.5 py-1.5 shadow-sm">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-emerald-500 text-sm font-semibold text-white">{authService.getInitials()}</div>
+                    <div className="hidden sm:block text-left">
+                      <p className="text-sm font-semibold text-slate-800">{authService.getDisplayName()}</p>
+                      <p className="text-xs text-brand-700 font-semibold">{authService.getCurrentUser()?.sport || 'Football'} Coach</p>
                     </div>
                     <ChevronDown className="mr-1 h-4 w-4 text-slate-500" />
                   </button>
@@ -216,6 +217,16 @@ export default function CoachPortalLayout({ children }: CoachPortalLayoutProps) 
               </div>
             </div>
           </header>
+
+          <div className="mt-3 flex items-center justify-between rounded-2xl border border-sky-200/80 bg-sky-50/90 px-4 py-2.5 text-xs font-semibold text-sky-900 shadow-sm">
+            <span className="flex items-center gap-2">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Coach Scope: Filtered strictly to <strong className="text-brand-700 font-bold uppercase tracking-wider">{authService.getCurrentUser()?.sport || 'Football'}</strong> enrolled athletes & fixtures.
+            </span>
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold text-sky-800 border border-sky-200">
+              Assigned Discipline: {authService.getCurrentUser()?.sport || 'Football'}
+            </span>
+          </div>
 
           <main className="mt-4 space-y-4">{children}</main>
         </div>
