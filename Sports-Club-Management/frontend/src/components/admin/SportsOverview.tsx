@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Users2 } from 'lucide-react';
 import userService from '../../services/userService';
@@ -6,6 +7,7 @@ import eventService, { type Event } from '../../services/eventService';
 import type { AuthUser } from '../../services/authService';
 
 export default function SportsOverview() {
+  const navigate = useNavigate();
   const [members, setMembers] = useState<AuthUser[]>([]);
   const [coaches, setCoaches] = useState<AuthUser[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -63,7 +65,13 @@ export default function SportsOverview() {
                   <p><strong>{loading ? '…' : memberCount}</strong> athletes</p>
                   <p><strong>{loading ? '…' : coachCount}</strong> coaches</p>
                 </div>
-                <button type="button" className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-brand-700">Manage <ArrowRight className="h-4 w-4" /></button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin/members')}
+                  className="mt-4 inline-flex items-center gap-2 text-xs font-semibold text-brand-700 hover:text-brand-800 transition-colors"
+                >
+                  Manage <ArrowRight className="h-4 w-4" />
+                </button>
               </motion.div>
             );
           })}

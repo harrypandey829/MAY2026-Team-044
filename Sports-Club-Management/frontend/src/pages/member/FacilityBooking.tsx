@@ -14,7 +14,8 @@ export default function FacilityBookingPage() {
 
   const user = authService.getCurrentUser();
 
-  useEffect(() => {
+  function loadData() {
+    setLoading(true);
     Promise.all([resourceService.getAll(), resourceBookingService.getAll()])
       .then(([res, bkgs]) => {
         setResources(res);
@@ -23,6 +24,12 @@ export default function FacilityBookingPage() {
         }
       })
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadData();
+    window.addEventListener('resource_booking_updated', loadData);
+    return () => window.removeEventListener('resource_booking_updated', loadData);
   }, []);
 
   async function handleBook(resource: Resource) {
@@ -33,14 +40,14 @@ export default function FacilityBookingPage() {
     try {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const booking = await resourceBookingService.create({
+      const newBooking = await resourceBookingService.create({
         resource_id: resource.id,
         member_id: user.id,
         booking_date: tomorrow.toISOString(),
         duration_hours: 1,
       });
-      setBookings((prev) => [...prev, booking]);
-      setSuccess(`Booked ${resource.name} successfully!`);
+      setBookings((prev) => [...prev, newBooking]);
+      setSuccess(`Booking request for ${resource.name} submitted! Awaiting coach approval.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Booking failed');
     } finally {
@@ -60,13 +67,23 @@ export default function FacilityBookingPage() {
   const facilities = resources.filter((r) => r.resource_type === 'Facility');
   const equipment = resources.filter((r) => r.resource_type === 'Equipment');
 
+  function getStatusBadge(status?: string) {
+    if (status === 'Confirmed') {
+      return <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700">Confirmed</span>;
+    }
+    if (status === 'Rejected') {
+      return <span className="rounded-full bg-rose-50 border border-rose-200 px-2.5 py-1 text-xs font-semibold text-rose-700">Rejected</span>;
+    }
+    return <span className="rounded-full bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700">Pending Coach Approval</span>;
+  }
+
   return (
     <MemberLayout>
       <section className="rounded-[2rem] border border-sky-200/70 bg-gradient-to-r from-sky-100 via-white to-emerald-50 p-6 text-slate-900 shadow-xl shadow-sky-100/80 sm:p-8">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-700">Portal</p>
           <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Facility Booking</h1>
-          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Reserve your preferred spaces and equipment, review upcoming bookings, and manage your schedule.</p>
+          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Reserve your preferred spaces and equipment. Booking requests are reviewed and approved by game coaches.</p>
         </div>
       </section>
 
@@ -102,7 +119,7 @@ export default function FacilityBookingPage() {
                       onClick={() => handleBook(facility)}
                       className="mt-4 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
                     >
-                      {booking === facility.id ? 'Booking...' : 'Book'}
+                      {booking === facility.id ? 'Requesting...' : 'Book Facility'}
                     </button>
                   )}
                 </div>
@@ -123,7 +140,7 @@ export default function FacilityBookingPage() {
                       onClick={() => handleBook(eq)}
                       className="mt-4 rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-70"
                     >
-                      {booking === eq.id ? 'Booking...' : 'Reserve'}
+                      {booking === eq.id ? 'Reserving...' : 'Reserve Equipment'}
                     </button>
                   )}
                 </div>
@@ -141,21 +158,22 @@ export default function FacilityBookingPage() {
             <div className="space-y-3">
               {bookings.map((b) => {
                 const resource = resources.find((r) => r.id === b.resource_id);
+                const displayDate = b.booking_date ? new Date(b.booking_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Upcoming';
                 return (
                   <div key={b.id} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-slate-900">{resource?.name ?? 'Resource'}</p>
-                        <p className="mt-1 text-sm text-slate-500">{b.booking_date} · {b.duration_hours}h</p>
+                        <p className="font-semibold text-slate-900">{resource?.name ?? 'Facility Booking'}</p>
+                        <p className="mt-1 text-sm text-slate-500">{displayDate} · {b.duration_hours}h duration</p>
                       </div>
-                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Confirmed</span>
+                      {getStatusBadge(b.approval_status)}
                     </div>
                     <button
                       type="button"
                       onClick={() => handleCancel(b)}
-                      className="mt-3 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700"
+                      className="mt-3 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
                     >
-                      Cancel
+                      Cancel Booking
                     </button>
                   </div>
                 );

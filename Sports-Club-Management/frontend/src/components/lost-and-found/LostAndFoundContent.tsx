@@ -1,50 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, Sparkles, ShieldCheck } from 'lucide-react';
 import PageCard from '../member/PageCard';
-
-export interface LostFoundItem {
-  name: string;
-  description: string;
-  date: string;
-  location: string;
-  status: 'Lost' | 'Found' | 'Claimed';
-  reportedBy: string;
-  sport: string;
-  contact: string;
-}
-
-const initialItems: LostFoundItem[] = [
-  {
-    name: 'Blue Water Bottle',
-    description: 'Found near the pool lounge after the morning session.',
-    date: '10 Jul 2026',
-    location: 'Pool Lounge',
-    status: 'Found',
-    reportedBy: 'Mina R.',
-    sport: 'Swimming',
-    contact: '+1 202 555 0148',
-  },
-  {
-    name: 'Training Towel',
-    description: 'Lost during the evening badminton class.',
-    date: '08 Jul 2026',
-    location: 'Court 2',
-    status: 'Lost',
-    reportedBy: 'Alex C.',
-    sport: 'Badminton',
-    contact: '+1 202 555 0149',
-  },
-  {
-    name: 'Football Gloves',
-    description: 'Left in the changing room after the evening match.',
-    date: '12 Jul 2026',
-    location: 'Changing Room A',
-    status: 'Claimed',
-    reportedBy: 'Noah B.',
-    sport: 'Football',
-    contact: '+1 202 555 0150',
-  },
-];
+import lostAndFoundService, { type LostFoundItem } from '../../services/lostAndFoundService';
+import authService from '../../services/authService';
 
 interface LostAndFoundContentProps {
   variant: 'member' | 'coach' | 'admin';
@@ -55,20 +13,36 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
   const isAdmin = variant === 'admin';
 
   // State hooks
-  const [itemsList, setItemsList] = useState<LostFoundItem[]>(initialItems);
+  const [itemsList, setItemsList] = useState<LostFoundItem[]>(() => lostAndFoundService.getAll());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState<'Lost' | 'Found'>('Lost');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('All');
+
+  const user = authService.getCurrentUser();
+  const defaultReporterName = user ? authService.getDisplayName() : '';
 
   // Form states
   const [itemName, setItemName] = useState('');
   const [itemDesc, setItemDesc] = useState('');
   const [itemLoc, setItemLoc] = useState('');
-  const [itemSport, setItemSport] = useState('');
-  const [itemContact, setItemContact] = useState('');
-  const [itemReporter, setItemReporter] = useState('');
+  const [itemSport, setItemSport] = useState(user?.sport || 'General');
+  const [itemContact, setItemContact] = useState(user?.phone || '+1 202 555 0199');
+  const [itemReporter, setItemReporter] = useState(defaultReporterName);
+
+  function reloadItems() {
+    setItemsList(lostAndFoundService.getAll());
+  }
+
+  useEffect(() => {
+    reloadItems();
+    window.addEventListener('lost_found_updated', reloadItems);
+    return () => window.removeEventListener('lost_found_updated', reloadItems);
+  }, []);
 
   const openReportModal = (status: 'Lost' | 'Found') => {
     setDefaultStatus(status);
+    setItemReporter(authService.getDisplayName());
     setIsModalOpen(true);
   };
 
@@ -78,7 +52,7 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
       return;
     }
 
-    const newItem: LostFoundItem = {
+    lostAndFoundService.add({
       name: itemName,
       description: itemDesc,
       date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -87,9 +61,7 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
       reportedBy: itemReporter,
       sport: itemSport || 'General',
       contact: itemContact,
-    };
-
-    setItemsList((prev) => [newItem, ...prev]);
+    });
 
     // Clear form and close modal
     setItemName('');
@@ -97,9 +69,21 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
     setItemLoc('');
     setItemSport('');
     setItemContact('');
-    setItemReporter('');
     setIsModalOpen(false);
   };
+
+  const handleUpdateStatus = (id: string, status: LostFoundItem['status']) => {
+    lostAndFoundService.updateStatus(id, status);
+  };
+
+  const filteredItems = itemsList.filter((item) => {
+    const matchesSearch =
+      item.name.toLowerCase().includes(search.toLowerCase()) ||
+      item.description.toLowerCase().includes(search.toLowerCase()) ||
+      item.location.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <>
@@ -112,7 +96,7 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
               ? isAdmin
                 ? 'Review all reports, update item status, and manage lost and found operations across the club.'
                 : 'Review all reports, update item status, and help coordinate returned items across the club.'
-              : 'Report a missing item, check what has been found, and contact the owner when a match is identified.'}
+              : 'Report a missing item, check what has been found, and coordinate with staff for returned items.'}
           </p>
         </div>
       </section>
@@ -122,7 +106,7 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
           <button
             type="button"
             onClick={() => openReportModal('Lost')}
-            className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95"
+            className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-95 shadow-md shadow-sky-200/50"
           >
             Report Lost Item
           </button>
@@ -133,76 +117,82 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
           >
             Report Found Item
           </button>
-          {isCoach && (
-            <button
-              type="button"
-              onClick={() => openReportModal('Found')}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-            >
-              Update Item Status
-            </button>
-          )}
         </div>
         <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <label className="flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500">
             <Search className="h-4 w-4" />
-            <input className="w-full bg-transparent outline-none" placeholder="Search items" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full bg-transparent outline-none text-slate-900"
+              placeholder="Search items by title, description or location..."
+            />
           </label>
           <div className="flex flex-wrap gap-2">
-            <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by status</div>
-            {isCoach && (
-              <>
-                <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by Sport</div>
-                <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by Date</div>
-              </>
-            )}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-700 outline-none"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Lost">Lost</option>
+              <option value="Found">Found</option>
+              <option value="Claimed">Claimed</option>
+            </select>
           </div>
         </div>
       </PageCard>
 
-      <PageCard title="Item listings" subtitle="Lost and found records">
+      <PageCard title="Item listings" subtitle={`${filteredItems.length} records found`}>
         <div className="grid gap-3">
-          {itemsList.map((item, index) => (
-            <div key={`${item.name}-${index}`} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-slate-900">{item.name}</p>
-                  <p className="mt-2 text-sm text-slate-600">{item.description}</p>
-                  <p className="mt-3 text-sm text-slate-500">{item.date} • {item.location}</p>
-                  <p className="mt-2 text-sm text-slate-500">Sport: {item.sport}</p>
+          {filteredItems.length === 0 ? (
+            <p className="py-8 text-center text-sm text-slate-500">No lost and found items match your criteria.</p>
+          ) : (
+            filteredItems.map((item) => (
+              <div key={item.id} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-900">{item.name}</p>
+                    <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+                    <p className="mt-3 text-sm text-slate-500">{item.date} • {item.location}</p>
+                    {item.sport && <p className="mt-1 text-xs font-semibold text-brand-700">Sport: {item.sport}</p>}
+                  </div>
+                  <div className="text-right">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === 'Found' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : item.status === 'Claimed' ? 'bg-sky-50 text-sky-700 border border-sky-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                      {item.status}
+                    </span>
+                    <p className="mt-3 text-sm text-slate-500">Reported by {item.reportedBy}</p>
+                    <p className="mt-1 text-sm text-slate-500">Contact: {item.contact}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === 'Found' ? 'bg-emerald-50 text-emerald-700' : item.status === 'Claimed' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700'}`}>
-                    {item.status}
-                  </span>
-                  <p className="mt-3 text-sm text-slate-500">Reported by {item.reportedBy}</p>
-                  <p className="mt-1 text-sm text-slate-500">Contact: {item.contact}</p>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {isCoach ? (
-                  <>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Edit Details
+                {isCoach && (
+                  <div className="mt-4 flex flex-wrap gap-2 pt-2 border-t border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateStatus(item.id, 'Claimed')}
+                      className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-100 transition-colors"
+                    >
+                      Mark as Claimed
                     </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Update Status
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateStatus(item.id, 'Found')}
+                      className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                    >
+                      Mark as Found
                     </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Mark Claimed
+                    <button
+                      type="button"
+                      onClick={() => handleUpdateStatus(item.id, 'Lost')}
+                      className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+                    >
+                      Mark as Lost
                     </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Contact Member
-                    </button>
-                  </>
-                ) : (
-                  <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                    Contact Owner
-                  </button>
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
         <div className="mt-4 rounded-[1.2rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
           <div className="flex items-center gap-2">
@@ -211,7 +201,7 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
               ? isAdmin
                 ? 'Club owners can review, manage, and follow up on every report to keep the club organised.'
                 : 'Coaches can review, manage, and follow up on every report to keep the club organised.'
-              : 'The front desk team reviews new reports each day.'}
+              : 'The front desk team and coaches review new reports each day.'}
           </div>
           {isCoach && (
             <div className="mt-2 flex items-center gap-2">

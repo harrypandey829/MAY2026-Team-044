@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, ChevronDown, LifeBuoy, LogOut, MessageSquareText, Search, Settings, UserCircle2 } from 'lucide-react';
+import { Bell, ChevronDown, LifeBuoy, LogOut, Search, Settings, UserCircle2 } from 'lucide-react';
 import authService from '../../services/authService';
 
 interface AdminNavbarProps {
@@ -50,9 +50,6 @@ export default function AdminNavbar({ onMenuClick, displayName = 'Club Administr
             className="rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-50"
           >
             <Bell className="h-5 w-5" />
-          </button>
-          <button type="button" className="rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-50">
-            <MessageSquareText className="h-5 w-5" />
           </button>
           <div className="relative">
             <button type="button" onClick={() => setIsProfileOpen((current) => !current)} className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2 py-1.5">

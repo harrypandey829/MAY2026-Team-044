@@ -21,7 +21,7 @@ export default function MembershipPage() {
   const [selectedDuration, setSelectedDuration] = useState<'Monthly' | '6-Months'>('Monthly');
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
-  const [plans, setPlans] = useState<Record<string, SportPlan>>(() => sportPlansService.getPlans());
+  const [, setPlans] = useState<Record<string, SportPlan>>(() => sportPlansService.getPlans());
 
   useEffect(() => {
     function handlePlansUpdate() {
@@ -45,8 +45,10 @@ export default function MembershipPage() {
 
     try {
       await paymentService.create({
-        amount: String(amount),
+        member_id: user?.id || '',
+        amount: Number(amount),
         payment_model: selectedDuration === 'Monthly' ? 'Monthly' : 'Annual',
+        invoice_status: 'Paid',
         due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       });
       if (user) {

@@ -76,15 +76,20 @@ class PaymentService:
 
             return None
 
-        payment.amount = request.amount
+        if request.amount is not None:
+            payment.amount = request.amount
 
-        payment.payment_model = request.payment_model
+        if request.payment_model is not None:
+            payment.payment_model = request.payment_model
 
-        payment.invoice_status = request.invoice_status
+        if request.invoice_status is not None:
+            payment.invoice_status = request.invoice_status
 
-        payment.due_date = request.due_date
+        if request.due_date is not None:
+            payment.due_date = request.due_date
 
-        payment.paid_date = request.paid_date
+        if request.paid_date is not None:
+            payment.paid_date = request.paid_date
 
         return self.repository.update(
             db,

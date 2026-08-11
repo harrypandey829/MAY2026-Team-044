@@ -30,6 +30,7 @@ export interface CreateEventRequest {
   opponent?: string;
   description?: string;
   sport?: string;
+  event_status?: Event['event_status'];
   max_participants?: number;
   registration_deadline?: string;
   created_by?: string;

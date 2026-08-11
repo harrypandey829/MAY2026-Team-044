@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { BookOpen, CheckCircle2, Plus, Sparkles, X } from 'lucide-react';
+import { BookOpen, CheckCircle2, Plus, Sparkles, X, Check, XCircle } from 'lucide-react';
 import CoachPortalLayout from '../../components/coach-dashboard/CoachPortalLayout';
-import resourceService, { resourceBookingService, type Resource } from '../../services/resourceService';
+import resourceService, { resourceBookingService, type Resource, type ResourceBooking } from '../../services/resourceService';
 import authService from '../../services/authService';
 
 export default function EquipmentPage() {
   const [resources, setResources] = useState<Resource[]>([]);
+  const [bookings, setBookings] = useState<ResourceBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -16,19 +17,25 @@ export default function EquipmentPage() {
 
   const user = authService.getCurrentUser();
 
-  function loadResources() {
+  function loadData() {
     setLoading(true);
-    resourceService.getAll()
-      .then((data) => {
-        setResources(data);
-        if (data.length > 0) setSelectedResourceId(data[0].id);
+    Promise.all([resourceService.getAll(), resourceBookingService.getAll()])
+      .then(([resList, bkgList]) => {
+        setResources(resList);
+        setBookings(bkgList.filter((b) => !b.is_cancelled));
+        if (resList.length > 0) setSelectedResourceId(resList[0].id);
       })
-      .catch(() => setResources([]))
+      .catch(() => {
+        setResources([]);
+        setBookings([]);
+      })
       .finally(() => setLoading(false));
   }
 
   useEffect(() => {
-    loadResources();
+    loadData();
+    window.addEventListener('resource_booking_updated', loadData);
+    return () => window.removeEventListener('resource_booking_updated', loadData);
   }, []);
 
   async function handleReserveResource(e: React.FormEvent) {
@@ -44,9 +51,22 @@ export default function EquipmentPage() {
       });
       setIsReserveOpen(false);
       setFeedback('Resource booking submitted successfully!');
+      loadData();
     } catch {
       alert('Failed to reserve equipment / facility');
     }
+  }
+
+  async function handleApprove(bookingId: string) {
+    await resourceBookingService.updateApprovalStatus(bookingId, 'Confirmed');
+    setFeedback('Member facility booking request approved & confirmed!');
+    loadData();
+  }
+
+  async function handleReject(bookingId: string) {
+    await resourceBookingService.updateApprovalStatus(bookingId, 'Rejected');
+    setFeedback('Member facility booking request rejected.');
+    loadData();
   }
 
   return (
@@ -55,8 +75,8 @@ export default function EquipmentPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-700">Coach Portal</p>
-            <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Facility & Equipment Booking</h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Reserve training facilities, practice arenas, and club equipment for squad sessions.</p>
+            <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Facility & Equipment Approval</h1>
+            <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Review member facility booking requests, approve arena reservations, and manage team equipment inventory.</p>
           </div>
           <button
             type="button"
@@ -69,13 +89,82 @@ export default function EquipmentPage() {
       </section>
 
       {feedback && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3.5 text-sm font-semibold text-emerald-800 flex items-center justify-between">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3.5 text-sm font-semibold text-emerald-800 flex items-center justify-between shadow-sm">
           <span className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-emerald-600" /> {feedback}</span>
           <button type="button" onClick={() => setFeedback(null)}><X className="h-4 w-4 text-emerald-700" /></button>
         </div>
       )}
 
-      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      {/* Member Facility Booking Requests Section */}
+      <section className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Pending Approvals</p>
+            <h2 className="mt-1 text-xl font-semibold text-slate-900">Member Facility Booking Requests</h2>
+          </div>
+          <span className="rounded-full bg-amber-50 border border-amber-200 px-3 py-1 text-xs font-semibold text-amber-700">
+            {bookings.filter((b) => b.approval_status === 'Pending Coach Approval').length} Pending
+          </span>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {loading ? (
+            <p className="py-6 text-center text-sm text-slate-500">Loading booking requests...</p>
+          ) : bookings.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-500">No member facility booking requests at this time.</p>
+          ) : (
+            bookings.map((b) => {
+              const resName = resources.find((r) => r.id === b.resource_id)?.name || 'Facility Arena';
+              const displayDate = b.booking_date ? new Date(b.booking_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Upcoming';
+
+              return (
+                <div key={b.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border border-slate-200/80 bg-slate-50/80 p-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-slate-900">{resName}</p>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          b.approval_status === 'Confirmed'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : b.approval_status === 'Rejected'
+                            ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}
+                      >
+                        {b.approval_status || 'Pending Coach Approval'}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-500">Requested for Date: {displayDate} · Duration: {b.duration_hours}h</p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {b.approval_status !== 'Confirmed' && (
+                      <button
+                        type="button"
+                        onClick={() => handleApprove(b.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-sm"
+                      >
+                        <Check className="h-3.5 w-3.5" /> Confirm & Approve
+                      </button>
+                    )}
+                    {b.approval_status !== 'Rejected' && (
+                      <button
+                        type="button"
+                        onClick={() => handleReject(b.id)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white px-4 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 transition-colors"
+                      >
+                        <XCircle className="h-3.5 w-3.5" /> Reject
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr] mt-4">
         <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -121,7 +210,7 @@ export default function EquipmentPage() {
           </div>
           <div className="mt-5 space-y-3 text-sm text-slate-600">
             <p className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4 font-medium text-slate-800">
-              Coaches have priority booking access for training pitches and equipment kits.
+              Coaches review all member facility requests. Approved bookings appear as confirmed in the member schedule.
             </p>
           </div>
           <div className="mt-4 rounded-[1.2rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">

@@ -16,7 +16,19 @@ export interface ResourceBooking {
   booking_date: string;
   duration_hours: number;
   is_cancelled: boolean;
+  approval_status?: 'Pending Coach Approval' | 'Confirmed' | 'Rejected';
   created_at: string;
+}
+
+const BOOKINGS_STATUS_KEY = 'sports_club_resource_booking_status';
+
+function getStoredApprovalStatuses(): Record<string, 'Pending Coach Approval' | 'Confirmed' | 'Rejected'> {
+  try {
+    const data = localStorage.getItem(BOOKINGS_STATUS_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
 }
 
 export const resourceService = {
@@ -46,11 +58,21 @@ export const resourceService = {
 
 export const resourceBookingService = {
   async getAll(): Promise<ResourceBooking[]> {
-    return api.get<ResourceBooking[]>('/resource-bookings');
+    const list = await api.get<ResourceBooking[]>('/resource-bookings');
+    const statuses = getStoredApprovalStatuses();
+    return list.map((b) => ({
+      ...b,
+      approval_status: statuses[b.id] || 'Pending Coach Approval',
+    }));
   },
 
   async getById(id: string): Promise<ResourceBooking> {
-    return api.get<ResourceBooking>(`/resource-bookings/${id}`);
+    const b = await api.get<ResourceBooking>(`/resource-bookings/${id}`);
+    const statuses = getStoredApprovalStatuses();
+    return {
+      ...b,
+      approval_status: statuses[b.id] || 'Pending Coach Approval',
+    };
   },
 
   async create(data: {
@@ -59,7 +81,22 @@ export const resourceBookingService = {
     booking_date: string;
     duration_hours: number;
   }): Promise<ResourceBooking> {
-    return api.post<ResourceBooking>('/resource-bookings', data);
+    const booking = await api.post<ResourceBooking>('/resource-bookings', data);
+    const statuses = getStoredApprovalStatuses();
+    statuses[booking.id] = 'Pending Coach Approval';
+    localStorage.setItem(BOOKINGS_STATUS_KEY, JSON.stringify(statuses));
+    window.dispatchEvent(new Event('resource_booking_updated'));
+    return {
+      ...booking,
+      approval_status: 'Pending Coach Approval',
+    };
+  },
+
+  async updateApprovalStatus(id: string, status: 'Confirmed' | 'Rejected'): Promise<void> {
+    const statuses = getStoredApprovalStatuses();
+    statuses[id] = status;
+    localStorage.setItem(BOOKINGS_STATUS_KEY, JSON.stringify(statuses));
+    window.dispatchEvent(new Event('resource_booking_updated'));
   },
 
   async update(
