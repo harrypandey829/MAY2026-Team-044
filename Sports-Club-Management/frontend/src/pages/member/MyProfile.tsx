@@ -2,25 +2,27 @@ import { Camera, Mail, MapPin, Phone, ShieldCheck, Sparkles } from 'lucide-react
 import { Link } from 'react-router-dom';
 import MemberLayout from '../../components/member/MemberLayout';
 import PageCard from '../../components/member/PageCard';
-
-const profileDetails = [
-  { label: 'Full Name', value: 'Alex Carter' },
-  { label: 'Member ID', value: 'CLB-2048' },
-  { label: 'Email', value: 'alex@clubmember.com' },
-  { label: 'Phone Number', value: '+1 555 123 4567' },
-  { label: 'Gender', value: 'Male' },
-  { label: 'Date of Birth', value: '14 May 1998' },
-  { label: 'Address', value: '185 Harbor Street, Seattle' },
-  { label: 'Emergency Contact', value: 'Mina Carter • +1 555 765 4321' },
-  { label: 'Sports Joined', value: 'Swimming, Badminton' },
-  { label: 'Team', value: 'Aquatic Squad / Club A' },
-  { label: 'Coach', value: 'Coach Lina / Coach Maya' },
-  { label: 'Membership Plan', value: 'Premium Member' },
-  { label: 'Membership Status', value: 'Active' },
-  { label: 'Date Joined', value: '12 Jan 2023' },
-];
+import authService from '../../services/authService';
 
 export default function MyProfilePage() {
+  const user = authService.getCurrentUser();
+
+  const profileDetails = [
+    { label: 'Full Name', value: user ? `${user.first_name} ${user.last_name}` : 'N/A' },
+    { label: 'Member ID', value: user?.id ? `CLB-${user.id.slice(0, 6).toUpperCase()}` : 'N/A' },
+    { label: 'Email', value: user?.email || 'N/A' },
+    { label: 'Phone Number', value: user?.phone || 'N/A' },
+    { label: 'Gender', value: user?.gender || 'N/A' },
+    { label: 'Date of Birth', value: user?.dob || 'N/A' },
+    { label: 'Address', value: user?.address || 'N/A' },
+    { label: 'Emergency Contact', value: user?.emergency_contact || 'N/A' },
+    { label: 'Sports Joined', value: user?.sport || 'None' },
+    { label: 'Membership Status', value: user?.status || 'Active' },
+    { label: 'Role', value: user?.role || 'Member' },
+  ];
+
+  const initials = user ? `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase() : 'ME';
+
   return (
     <MemberLayout>
       <section className="rounded-[2rem] border border-sky-200/70 bg-gradient-to-r from-sky-100 via-white to-emerald-50 p-6 text-slate-900 shadow-xl shadow-sky-100/80 sm:p-8">
@@ -39,9 +41,6 @@ export default function MyProfilePage() {
             <Link to="/dashboard/edit-profile" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white">
               Edit Profile
             </Link>
-            <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-              Change Password
-            </button>
           </div>
         }
       >
@@ -50,18 +49,17 @@ export default function MyProfilePage() {
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-emerald-500 text-2xl font-semibold text-white">
-                  AC
+                  {initials}
                 </div>
                 <button type="button" className="absolute bottom-0 right-0 rounded-full border border-white bg-white p-2 text-brand-600 shadow-sm">
                   <Camera className="h-4 w-4" />
                 </button>
               </div>
               <div>
-                <p className="text-xl font-semibold text-slate-900">Alex Carter</p>
-                <p className="text-sm text-slate-500">Premium Member • Active</p>
+                <p className="text-xl font-semibold text-slate-900">{user ? `${user.first_name} ${user.last_name}` : 'Member'}</p>
+                <p className="text-sm text-slate-500">{user?.role || 'Member'} • {user?.status || 'Active'}</p>
               </div>
             </div>
-            <div className="rounded-full bg-white px-3 py-2 text-sm font-semibold text-brand-700">Member since 2023</div>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -77,15 +75,15 @@ export default function MyProfilePage() {
         <div className="mt-5 grid gap-3 md:grid-cols-3">
           <div className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
             <div className="flex items-center gap-2 text-brand-700"><Mail className="h-4 w-4" /> Contact</div>
-            <p className="mt-2 text-sm text-slate-600">alex@clubmember.com</p>
+            <p className="mt-2 text-sm text-slate-600">{user?.email || 'N/A'}</p>
           </div>
           <div className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
             <div className="flex items-center gap-2 text-brand-700"><Phone className="h-4 w-4" /> Phone</div>
-            <p className="mt-2 text-sm text-slate-600">+1 555 123 4567</p>
+            <p className="mt-2 text-sm text-slate-600">{user?.phone || 'N/A'}</p>
           </div>
           <div className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
             <div className="flex items-center gap-2 text-brand-700"><MapPin className="h-4 w-4" /> Address</div>
-            <p className="mt-2 text-sm text-slate-600">185 Harbor Street</p>
+            <p className="mt-2 text-sm text-slate-600">{user?.address || 'N/A'}</p>
           </div>
         </div>
 
@@ -97,3 +95,4 @@ export default function MyProfilePage() {
     </MemberLayout>
   );
 }
+

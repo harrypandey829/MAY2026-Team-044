@@ -24,12 +24,13 @@ export interface CreateEventRequest {
   title: string;
   event_type: Event['event_type'];
   date: string;
-  start_time: string;
+  start_time?: string;
   end_time?: string;
   venue: string;
   opponent?: string;
   description?: string;
   sport?: string;
+  event_status?: Event['event_status'];
   max_participants?: number;
   registration_deadline?: string;
   created_by?: string;

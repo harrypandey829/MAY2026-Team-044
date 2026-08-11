@@ -37,6 +37,8 @@ class PaymentResponse(BaseModel):
     due_date: date
     paid_date: date | None
     created_at: datetime
+    member_name: str | None = None
+    member_email: str | None = None
 
     class Config:
         from_attributes = True

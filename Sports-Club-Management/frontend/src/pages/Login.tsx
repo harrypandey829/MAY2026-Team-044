@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
-import GoogleButton from '../components/GoogleButton';
 import authService from '../services/authService';
 
 interface FieldErrors {
@@ -210,22 +209,9 @@ export default function Login() {
           )}
         </button>
 
-        {/* Divider */}
-        <div className="relative py-1">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              OR
-            </span>
-          </div>
-        </div>
-
-        {/* Google */}
-        <GoogleButton label="Login with Google" />
-
+        {/* Test Credentials */}
         <div className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-600">
+
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-700">
             Test Credentials
           </p>

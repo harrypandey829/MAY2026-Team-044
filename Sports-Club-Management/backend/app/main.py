@@ -68,8 +68,17 @@ def on_startup():
                 columns = [c["name"] for c in inspector.get_columns("users")]
                 if "sport" not in columns:
                     conn.execute(text("ALTER TABLE users ADD COLUMN sport VARCHAR(255)"))
+                if "address" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN address VARCHAR(255)"))
+                if "gender" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN gender VARCHAR(50)"))
+                if "dob" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN dob VARCHAR(50)"))
+                if "emergency_contact" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN emergency_contact VARCHAR(255)"))
     except Exception as e:
         print(f"Startup migration check: {e}")
+
 
 
 @app.get("/health")

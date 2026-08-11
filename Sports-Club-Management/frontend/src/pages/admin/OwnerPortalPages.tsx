@@ -912,6 +912,7 @@ export function EventsPage() {
 export function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [bookings, setBookings] = useState<ResourceBooking[]>([]);
+  const [users, setUsers] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -923,10 +924,11 @@ export function ResourcesPage() {
 
   function loadData() {
     setLoading(true);
-    Promise.all([resourceService.getAll(), resourceBookingService.getAll()])
-      .then(([rList, bList]) => {
+    Promise.all([resourceService.getAll(), resourceBookingService.getAll(), userService.getAll()])
+      .then(([rList, bList, uList]) => {
         setResources(rList);
         setBookings(bList);
+        setUsers(uList);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -995,12 +997,41 @@ export function ResourcesPage() {
           {bookings.length === 0 ? (
             <p className="py-4 text-center text-sm text-slate-500">No booking requests submitted yet.</p>
           ) : (
-            bookings.map((b) => (
-              <div key={b.id} className="flex items-center justify-between rounded-[1rem] border border-slate-200 bg-slate-50/80 p-3 text-sm">
-                <span>Booking ID: {b.id.slice(0, 8)} • Date: {b.booking_date} ({b.duration_hours} hrs)</span>
-                <span className="font-bold text-emerald-700">{b.is_cancelled ? 'Cancelled' : 'Confirmed'}</span>
-              </div>
-            ))
+            bookings.map((b) => {
+              const userObj = users.find((u) => String(u.id) === String(b.member_id));
+              const resObj = resources.find((r) => String(r.id) === String(b.resource_id));
+              const personName = b.user_name || (userObj ? `${userObj.first_name} ${userObj.last_name}` : 'Club User');
+              const personRole = b.user_role || userObj?.role || 'Member';
+              const resourceName = b.resource_name || resObj?.name || 'Facility Resource';
+
+              return (
+                <div key={b.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-[1.25rem] border border-slate-200 bg-slate-50/80 p-4 text-sm shadow-sm">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-slate-900">{personName}</span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                        personRole === 'Coach'
+                          ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                          : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                      }`}>
+                        {personRole}
+                      </span>
+                      <span className="font-mono text-xs font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                        ID: BK-{b.id.slice(0, 6).toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      Resource: <strong className="text-slate-800">{resourceName}</strong> • Date: <strong className="text-slate-800">{b.booking_date}</strong> ({b.duration_hours} hrs)
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${b.is_cancelled ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-emerald-100 text-emerald-800 border border-emerald-200'}`}>
+                      {b.is_cancelled ? 'Cancelled' : 'Confirmed'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </section>
@@ -1171,20 +1202,31 @@ export function MembershipFeesPage() {
 // ----------------------------------------------------------------------
 export function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [users, setUsers] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
-    paymentService.getAll()
-      .then(setPayments)
-      .catch(() => setPayments([]))
+  function loadPayments() {
+    setLoading(true);
+    Promise.all([paymentService.getAll(), userService.getAll()])
+      .then(([pList, uList]) => {
+        setPayments(pList);
+        setUsers(uList);
+      })
+      .catch(() => {})
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadPayments();
   }, []);
 
-  const totalRevenue = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+  const totalRevenue = payments
+    .filter((p) => p.invoice_status === 'Paid')
+    .reduce((acc, p) => acc + (parseFloat(String(p.amount)) || 0), 0);
 
   function handleSendReminder(id: string) {
-    setFeedback(`Payment reminder sent for invoice ${id.slice(0, 8)}.`);
+    setFeedback(`Payment reminder sent for invoice INV-${id.slice(0, 8).toUpperCase()}.`);
   }
 
   return (
@@ -1192,26 +1234,36 @@ export function PaymentsPage() {
       <PageHeader title="Payments & Invoices" subtitle="Review club revenue, fee invoices, status tracking, and member payment history." />
 
       {feedback && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between mt-4">
           <span>{feedback}</span>
           <button type="button" onClick={() => setFeedback(null)}><X className="h-4 w-4" /></button>
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total Revenue Collected" value={`₹${totalRevenue.toLocaleString('en-IN')}`} detail="Live Ledger Total" />
+      <div className="grid gap-4 md:grid-cols-4 mt-4">
+        <StatCard label="Total Revenue Collected" value={`₹${totalRevenue.toLocaleString('en-IN')}`} detail="Paid Invoices Total" />
         <StatCard label="Paid Invoices" value={loading ? '…' : String(payments.filter((p) => p.invoice_status === 'Paid').length)} detail="Completed" />
         <StatCard label="Pending Payments" value={loading ? '…' : String(payments.filter((p) => p.invoice_status === 'Pending').length)} detail="Follow-up needed" />
         <StatCard label="Overdue Invoices" value={loading ? '…' : String(payments.filter((p) => p.invoice_status === 'Overdue').length)} detail="Overdue" />
       </div>
 
       <section className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-5 shadow-lg shadow-sky-100/70 mt-4">
-        <p className="text-lg font-bold text-slate-900">Live Invoices Ledger</p>
+        <div className="flex items-center justify-between">
+          <p className="text-lg font-bold text-slate-900">Live Invoices Ledger ({payments.length})</p>
+          <button
+            type="button"
+            onClick={loadPayments}
+            className="rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            Refresh Ledger
+          </button>
+        </div>
         <div className="mt-4 overflow-hidden rounded-[1.25rem] border border-slate-200/70">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50/80 text-left text-slate-600">
               <tr>
                 <th className="px-4 py-3 font-semibold">Invoice ID</th>
+                <th className="px-4 py-3 font-semibold">Member Name</th>
                 <th className="px-4 py-3 font-semibold">Amount</th>
                 <th className="px-4 py-3 font-semibold">Payment Model</th>
                 <th className="px-4 py-3 font-semibold">Due Date</th>
@@ -1221,26 +1273,46 @@ export function PaymentsPage() {
             </thead>
             <tbody className="divide-y divide-slate-200 bg-white/80 text-slate-700">
               {loading ? (
-                <tr><td colSpan={6} className="py-8 text-center text-sm text-slate-500">Loading invoices...</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-sm text-slate-500">Loading invoices...</td></tr>
               ) : payments.length === 0 ? (
-                <tr><td colSpan={6} className="py-8 text-center text-sm text-slate-500">No payment invoices found</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-sm text-slate-500">No payment invoices found</td></tr>
               ) : (
-                payments.map((p) => (
-                  <tr key={p.id}>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-900">INV-{p.id.slice(0, 8).toUpperCase()}</td>
-                    <td className="px-4 py-3 font-bold text-emerald-700">{paymentService.formatAmount(p.amount)}</td>
-                    <td className="px-4 py-3">{p.payment_model}</td>
-                    <td className="px-4 py-3 text-slate-600">{p.due_date}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${p.invoice_status === 'Paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-                        {p.invoice_status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button type="button" onClick={() => handleSendReminder(p.id)} className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">Reminder</button>
-                    </td>
-                  </tr>
-                ))
+                payments.map((p) => {
+                  const mUser = users.find((u) => String(u.id) === String(p.member_id));
+                  const mName = p.member_name || (mUser ? `${mUser.first_name} ${mUser.last_name}` : 'Club Member');
+
+                  return (
+                    <tr key={p.id}>
+                      <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-900">INV-{p.id.slice(0, 8).toUpperCase()}</td>
+                      <td className="px-4 py-3 font-bold text-slate-900">{mName}</td>
+                      <td className="px-4 py-3 font-bold text-emerald-700">{paymentService.formatAmount(p.amount)}</td>
+                      <td className="px-4 py-3">{p.payment_model}</td>
+                      <td className="px-4 py-3 text-slate-600">{p.due_date}</td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          p.invoice_status === 'Paid'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : p.invoice_status === 'Overdue'
+                            ? 'bg-rose-50 text-rose-700'
+                            : 'bg-amber-50 text-amber-700'
+                        }`}>
+                          {p.invoice_status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {p.invoice_status !== 'Paid' && (
+                          <button
+                            type="button"
+                            onClick={() => handleSendReminder(p.id)}
+                            className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Send Reminder
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

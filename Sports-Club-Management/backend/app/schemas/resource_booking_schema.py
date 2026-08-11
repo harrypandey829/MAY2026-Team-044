@@ -40,6 +40,12 @@ class ResourceBookingResponse(BaseModel):
 
     created_at: datetime
 
+    user_name: str | None = None
+
+    user_role: str | None = None
+
+    resource_name: str | None = None
+
     class Config:
 
         from_attributes = True

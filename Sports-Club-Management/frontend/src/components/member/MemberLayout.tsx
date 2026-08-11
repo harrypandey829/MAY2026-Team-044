@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Bell, ChevronDown, ChevronLeft, Dumbbell, Menu, MessageSquareText, Search, UserCircle2, Settings as SettingsIcon, LifeBuoy, LogOut, PencilLine } from 'lucide-react';
+import { Bell, ChevronDown, ChevronLeft, Dumbbell, Menu, Search, UserCircle2, Settings as SettingsIcon, LifeBuoy, LogOut, PencilLine } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../dashboard/Sidebar';
 import { logoutDemoUser } from '../../utils/demoAuth';
@@ -90,9 +90,6 @@ export default function MemberLayout({ children }: MemberLayoutProps) {
                 >
                   <Bell className="h-5 w-5" />
                   <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-pitch-500" />
-                </button>
-                <button type="button" className="rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-100">
-                  <MessageSquareText className="h-5 w-5" />
                 </button>
                 <div ref={profileMenuRef} className="relative">
                   <button
