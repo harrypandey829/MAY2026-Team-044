@@ -1,21 +1,23 @@
 import api from './api';
 
-export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Excused';
+export type AttendanceStatus = 'Present' | 'Absent' | 'Late' | 'Excused' | 'PRESENT' | 'ABSENT';
 
 export interface AttendanceRecord {
   id: string;
   event_id: string;
   member_id: string;
-  attendance_status: AttendanceStatus;
+  attendance_status: AttendanceStatus | string;
   remarks: string | null;
+  rating?: number;
   marked_at: string;
 }
 
 export interface MarkAttendanceRequest {
   event_id: string;
   member_id: string;
-  attendance_status: AttendanceStatus;
+  attendance_status: AttendanceStatus | string;
   remarks?: string;
+  rating?: number;
 }
 
 export const attendanceService = {
@@ -33,9 +35,10 @@ export const attendanceService = {
 
   getAttendanceRate(records: AttendanceRecord[]): number {
     if (records.length === 0) return 0;
-    const present = records.filter(
-      (r) => r.attendance_status === 'Present' || r.attendance_status === 'Late'
-    ).length;
+    const present = records.filter((r) => {
+      const st = (r.attendance_status || '').toUpperCase();
+      return st === 'PRESENT' || st === 'LATE';
+    }).length;
     return Math.round((present / records.length) * 100);
   },
 };

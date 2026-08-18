@@ -25,13 +25,10 @@ class ResourceService:
     ):
 
         resource = Resource(
-
             name=request.name,
-
             resource_type=request.resource_type,
-
             quantity=request.quantity,
-
+            capacity=request.capacity,
             is_available=True
         )
 
@@ -75,17 +72,16 @@ class ResourceService:
             return None
 
         resource.name = request.name
-
         resource.resource_type = request.resource_type
-
         resource.quantity = request.quantity
-
+        resource.capacity = request.capacity
         resource.is_available = request.is_available
 
         return self.repository.update(
             db,
             resource
         )
+
 
     def delete(
         self,

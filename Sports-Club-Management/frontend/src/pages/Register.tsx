@@ -15,9 +15,8 @@ import {
   Trophy,
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
-import GoogleButton from '../components/GoogleButton';
 
-const sports = ['Badminton', 'Cricket', 'Football', 'Swimming', 'Tennis'] as const;
+const sports = ['Badminton', 'Cricket', 'Football', 'Swimming', 'Tennis', 'Basketball'] as const;
 
 interface FieldErrors {
   fullName?: string;
@@ -72,7 +71,6 @@ export default function Register() {
     if (!form.phone) next.phone = 'Phone number is required';
     else if (!/^[0-9+\-\s()]{7,}$/.test(form.phone)) next.phone = 'Enter a valid phone number';
     if (!form.password) next.password = 'Password is required';
-    else if (form.password.length < 6) next.password = 'Password must be at least 6 characters';
     if (!form.confirm) next.confirm = 'Please confirm your password';
     else if (form.confirm !== form.password) next.confirm = 'Passwords do not match';
     if (!form.sport) next.sport = 'Please select a sport';
@@ -128,7 +126,6 @@ export default function Register() {
     }
   }
 
-
   function fieldState(value: string, error?: string) {
     if (touched[value] && error) return 'invalid';
     if (touched[value] && !error && form[value as keyof typeof form]) return 'valid';
@@ -154,7 +151,7 @@ export default function Register() {
       title="Start Your Journey"
       subtitle="Create your account"
       motivational="Join thousands of athletes training, competing and growing with SportsClub. Your first session is closer than you think — let's get you on the field."
-      statValue="5+"
+      statValue="6+"
       statLabel="Sports offered"
     >
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 lg:mt-8" noValidate>
@@ -191,7 +188,6 @@ export default function Register() {
 
         {/* Full Name */}
         <div>
-
           <label htmlFor="fullName" className="mb-1.5 block text-sm font-semibold text-slate-700">
             Full Name
           </label>
@@ -255,7 +251,7 @@ export default function Register() {
                 value={form.phone}
                 onChange={(e) => update('phone', e.target.value)}
                 onBlur={() => markTouched('phone')}
-                placeholder="+1 (555) 000-0000"
+                placeholder="+91 90000 00000"
                 className="w-full bg-transparent py-3 text-sm text-slate-900 placeholder-slate-400 outline-none"
               />
               {states.phone === 'valid' && <CheckCircle2 className="h-5 w-5 shrink-0 text-pitch-500" />}
@@ -283,7 +279,7 @@ export default function Register() {
                 value={form.password}
                 onChange={(e) => update('password', e.target.value)}
                 onBlur={() => markTouched('password')}
-                placeholder="Min. 6 characters"
+                placeholder="Enter password"
                 className="w-full bg-transparent py-3 text-sm text-slate-900 placeholder-slate-400 outline-none"
               />
               {states.password === 'valid' && <CheckCircle2 className="h-5 w-5 shrink-0 text-pitch-500" />}
@@ -451,21 +447,6 @@ export default function Register() {
             </>
           )}
         </button>
-
-        {/* Divider */}
-        <div className="relative py-1">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              OR
-            </span>
-          </div>
-        </div>
-
-        {/* Google */}
-        <GoogleButton label="Continue with Google" />
 
         {/* Bottom link */}
         <p className="pt-2 text-center text-sm text-slate-500">

@@ -23,6 +23,8 @@ class UserResponse(BaseModel):
 
     sport: str | None = None
 
+    address: str | None = None
+
     is_approved: bool = True
 
     status: str = "Active"
@@ -39,6 +41,8 @@ class UpdateProfileRequest(BaseModel):
 
     phone: str | None = None
 
+    address: str | None = None
+
     profile_picture_url: str | None = None
 
     sport: str | None = None
@@ -46,7 +50,6 @@ class UpdateProfileRequest(BaseModel):
     is_approved: bool | None = None
 
     status: str | None = None
-
 
 
 class PasswordResetRequest(BaseModel):

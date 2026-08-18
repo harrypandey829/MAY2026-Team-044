@@ -15,7 +15,7 @@ const routeToLabel: Record<string, string> = {
   '/dashboard/my-sports': 'My Sports',
   '/dashboard/events': 'Events',
   '/dashboard/membership': 'Membership',
-  '/dashboard/facility-booking': 'Facility Booking',
+  '/dashboard/facility-booking': 'Equipment Utility House',
   '/dashboard/attendance': 'Attendance',
   '/dashboard/performance': 'Performance',
   '/dashboard/achievements': 'Achievements',

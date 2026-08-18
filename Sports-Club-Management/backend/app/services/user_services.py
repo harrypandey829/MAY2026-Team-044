@@ -77,6 +77,9 @@ class UserService:
         if request.phone is not None:
             user.phone = request.phone
 
+        if request.address is not None:
+            user.address = request.address
+
         if request.profile_picture_url is not None:
             user.profile_picture_url = request.profile_picture_url
 

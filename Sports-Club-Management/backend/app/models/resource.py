@@ -10,5 +10,6 @@ class Resource(Base, UUIDMixin, TimestampMixin):
     category: Mapped[str] = mapped_column(String(50), nullable=True)
     resource_type: Mapped[str] = mapped_column(String(50), nullable=True)
     quantity: Mapped[int] = mapped_column(Integer, default=1)
+    capacity: Mapped[int | None] = mapped_column(Integer, default=50, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    is_available: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_available: Mapped[bool] = mapped_column(Boolean, default=True)

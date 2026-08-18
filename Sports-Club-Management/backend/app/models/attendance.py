@@ -43,6 +43,11 @@ class Attendance(
         Text
     )
 
+    rating: Mapped[int | None] = mapped_column(
+        nullable=True
+    )
+
+
     marked_by: Mapped[str] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),

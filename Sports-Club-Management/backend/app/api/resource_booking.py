@@ -97,13 +97,38 @@ def update_booking(
     )
 
     if booking is None:
-
         raise HTTPException(
             status_code=404,
             detail="Booking not found"
         )
 
     return booking
+
+
+
+@router.put(
+    "/{booking_id}/status",
+    response_model=ResourceBookingResponse
+)
+def update_booking_status(
+    booking_id: UUID,
+    status: str,
+    remarks: str | None = None,
+    db: Session = Depends(get_db)
+):
+    booking = service.update_status(
+        db,
+        booking_id,
+        status,
+        remarks
+    )
+    if booking is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Booking not found"
+        )
+    return booking
+
 
 
 @router.delete("/{booking_id}")

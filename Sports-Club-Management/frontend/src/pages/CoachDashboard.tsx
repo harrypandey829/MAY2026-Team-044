@@ -17,7 +17,6 @@ import {
   ShieldCheck,
   Sparkles,
   Trophy,
-  UserRound,
   Users,
   Waves,
 } from 'lucide-react';
@@ -34,9 +33,7 @@ const sidebarItems = [
   { name: 'My Team', icon: Users },
   { name: 'Training Sessions', icon: Dumbbell },
   { name: 'Matches', icon: Trophy },
-  { name: 'Attendance', icon: ClipboardCheck },
   { name: 'Team Calendar', icon: CalendarDays },
-  { name: 'Player Availability', icon: UserRound },
   { name: 'Performance', icon: Sparkles },
   { name: 'Announcements', icon: MessageSquareText },
   { name: 'Equipment Booking', icon: BookOpen },
@@ -62,18 +59,6 @@ const matches = [
   { opponent: 'Harbor Tigers', type: 'Friendly', venue: 'West Arena', date: 'Mon, Jul 21', time: '6:00 PM', status: 'Pending' },
 ];
 
-const attendanceRows = [
-  { player: 'Mina Chen', session: 'Strength & Conditioning', attendance: 'Present', remarks: 'Excellent energy' },
-  { player: 'Noah Brooks', session: 'Tactical Review', attendance: 'Late', remarks: 'Arrived 10 mins late' },
-  { player: 'Liam Ortiz', session: 'Strength & Conditioning', attendance: 'Absent', remarks: 'Medical note pending' },
-];
-
-const availability = [
-  { label: 'Attending', value: 72, tone: 'bg-pitch-600' },
-  { label: 'Maybe', value: 18, tone: 'bg-amber-500' },
-  { label: 'Not Attending', value: 10, tone: 'bg-rose-500' },
-];
-
 const calendarEvents = [
   { title: 'Training Session', day: 12, type: 'Training' as const },
   { title: 'League Match', day: 19, type: 'Match' as const },
@@ -95,7 +80,7 @@ const equipment = [
   { name: 'Equipment Kit', status: 'Pending', action: 'Request Equipment' },
 ];
 
-const quickActions = ['Create Training Session', 'Schedule Match', 'Take Attendance', 'Post Announcement', 'View Team Calendar'];
+const quickActions = ['Create Training Session', 'Schedule Match', 'Post Announcement', 'View Team Calendar'];
 
 const activityFeed = [
   { title: 'Training Session Created', detail: 'Strength & Conditioning scheduled', time: '10 mins ago' },
@@ -388,69 +373,7 @@ export default function CoachDashboard() {
               </div>
             </section>
 
-            <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-              <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Attendance Management</p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Session attendance overview</h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/coach/attendance')}
-                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100"
-                  >
-                    Mark Attendance
-                  </button>
-                </div>
-                <div className="mt-5 overflow-x-auto">
-                  <table className="min-w-full text-left text-sm">
-                    <thead className="bg-slate-50/80 text-slate-500">
-                      <tr>
-                        <th className="px-4 py-3 font-semibold">Player</th>
-                        <th className="px-4 py-3 font-semibold">Training Session</th>
-                        <th className="px-4 py-3 font-semibold">Attendance</th>
-                        <th className="px-4 py-3 font-semibold">Remarks</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {attendanceRows.map((row) => (
-                        <tr key={row.player} className="border-t border-slate-100">
-                          <td className="px-4 py-3 font-semibold text-slate-900">{row.player}</td>
-                          <td className="px-4 py-3 text-slate-600">{row.session}</td>
-                          <td className="px-4 py-3">
-                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${row.attendance === 'Present' ? 'bg-pitch-100 text-pitch-700' : row.attendance === 'Late' ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700'}`}>{row.attendance}</span>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">{row.remarks}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
 
-              <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Player Availability</p>
-                    <h2 className="mt-2 text-xl font-semibold text-slate-900">Responses for next event</h2>
-                  </div>
-                </div>
-                <div className="mt-5 space-y-4">
-                  {availability.map((item) => (
-                    <div key={item.label}>
-                      <div className="mb-2 flex items-center justify-between text-sm font-semibold text-slate-700">
-                        <span>{item.label}</span>
-                        <span>{item.value}%</span>
-                      </div>
-                      <div className="h-2.5 rounded-full bg-slate-100">
-                        <div className={`h-2.5 rounded-full ${item.tone}`} style={{ width: `${item.value}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
 
             <section>
               <CoachCalendar events={calendarEvents} />

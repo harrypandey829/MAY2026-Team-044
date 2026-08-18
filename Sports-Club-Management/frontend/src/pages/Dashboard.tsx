@@ -62,7 +62,11 @@ export default function Dashboard() {
     if (!user) return;
 
     eventService.getAll()
-      .then((data) => setEvents(eventService.getUpcoming(data).slice(0, 3)))
+      .then((data) => {
+        const userSport = user?.sport || 'Badminton';
+        const sportEvents = data.filter((e) => !e.sport || e.sport.toLowerCase() === userSport.toLowerCase());
+        setEvents(eventService.getUpcoming(sportEvents).slice(0, 3));
+      })
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false));
 

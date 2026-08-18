@@ -3,7 +3,6 @@ from app.models.event import Event
 from app.models.practice_plan import PracticePlan
 from app.models.event_registration import EventRegistration
 from app.models.attendance import Attendance
-from app.models.event_registration import EventRegistration
 from app.models.performance_record import PerformanceRecord
 from app.models.match_result import MatchResult
 from app.models.performance_statistics import PerformanceStatistics
@@ -12,3 +11,7 @@ from app.models.resource import Resource
 from app.models.resource_booking import ResourceBooking
 from app.models.announcement import Announcement
 from app.models.notification import Notification
+from app.models.sport import Sport
+from app.models.equipment import Equipment
+from app.models.equipment_issuance import EquipmentIssuance
+from app.models.certificate import Certificate

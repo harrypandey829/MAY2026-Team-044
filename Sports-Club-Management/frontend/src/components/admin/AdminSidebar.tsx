@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart3,
@@ -19,6 +20,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import userService from '../../services/userService';
+import { resourceBookingService } from '../../services/resourceService';
 
 interface NavItem {
   name: string;
@@ -51,8 +54,21 @@ const navItems: NavItem[] = [
 ];
 
 export default function AdminSidebar({ isOpen, onClose, collapsed, onToggleCollapse, onLogout }: AdminSidebarProps) {
+
   const location = useLocation();
   const navigate = useNavigate();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    Promise.all([
+      userService.getByRole('Coach').catch(() => []),
+      resourceBookingService.getAll().catch(() => []),
+    ]).then(([coaches, bookings]) => {
+      const pendingCoaches = coaches.filter((c) => !c.is_approved).length;
+      const pendingBookings = bookings.filter((b) => b.status === 'PENDING').length;
+      setPendingCount(pendingCoaches + pendingBookings);
+    });
+  }, []);
 
   return (
     <>
@@ -88,7 +104,7 @@ export default function AdminSidebar({ isOpen, onClose, collapsed, onToggleColla
           </button>
         </div>
 
-        <nav className="mt-8 space-y-1.5">
+        <nav className="mt-8 space-y-1.5 overflow-y-auto max-h-[calc(100vh-220px)]">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = location.pathname === item.route;
@@ -110,14 +126,21 @@ export default function AdminSidebar({ isOpen, onClose, collapsed, onToggleColla
         </nav>
 
         <div className="mt-auto space-y-3 rounded-[1.5rem] border border-sky-100 bg-sky-50/80 p-3">
-          <div className="flex items-center gap-3">
+          <div
+            onClick={() => pendingCount > 0 && navigate('/admin/coaches')}
+            className={`flex items-center gap-3 ${pendingCount > 0 ? 'cursor-pointer hover:opacity-80' : ''}`}
+          >
             <div className="rounded-2xl bg-white p-2 text-brand-600 shadow-sm">
               <BellRing className="h-4 w-4" />
             </div>
             {!collapsed && (
               <div>
-                <p className="text-sm font-semibold text-slate-900">3 approvals pending</p>
-                <p className="text-xs text-slate-500">Review new registrations</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  {pendingCount > 0 ? `${pendingCount} approval${pendingCount > 1 ? 's' : ''} pending` : 'All caught up!'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {pendingCount > 0 ? 'Click to review' : 'No pending approvals'}
+                </p>
               </div>
             )}
           </div>
@@ -130,3 +153,4 @@ export default function AdminSidebar({ isOpen, onClose, collapsed, onToggleColla
     </>
   );
 }
+

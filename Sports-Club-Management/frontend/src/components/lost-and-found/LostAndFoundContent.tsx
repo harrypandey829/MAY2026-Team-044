@@ -58,6 +58,8 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
   const [itemsList, setItemsList] = useState<LostFoundItem[]>(initialItems);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState<'Lost' | 'Found'>('Lost');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Lost' | 'Found' | 'Claimed'>('All');
 
   // Form states
   const [itemName, setItemName] = useState('');
@@ -91,7 +93,6 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
 
     setItemsList((prev) => [newItem, ...prev]);
 
-    // Clear form and close modal
     setItemName('');
     setItemDesc('');
     setItemLoc('');
@@ -100,6 +101,37 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
     setItemReporter('');
     setIsModalOpen(false);
   };
+
+  const handleMarkClaimed = (index: number) => {
+    setItemsList((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, status: 'Claimed' } : item))
+    );
+  };
+
+  const handleToggleStatus = (index: number) => {
+    setItemsList((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const nextStatus: 'Lost' | 'Found' | 'Claimed' =
+          item.status === 'Lost' ? 'Found' : item.status === 'Found' ? 'Claimed' : 'Lost';
+        return { ...item, status: nextStatus };
+      })
+    );
+  };
+
+  const handleDeleteItem = (index: number) => {
+    setItemsList((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const filteredItems = itemsList.filter((item) => {
+    const matchesSearch =
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.sport.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <>
@@ -133,76 +165,91 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
           >
             Report Found Item
           </button>
-          {isCoach && (
-            <button
-              type="button"
-              onClick={() => openReportModal('Found')}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-            >
-              Update Item Status
-            </button>
-          )}
         </div>
         <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <label className="flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500">
             <Search className="h-4 w-4" />
-            <input className="w-full bg-transparent outline-none" placeholder="Search items" />
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent outline-none"
+              placeholder="Search items by name, sport or location..."
+            />
           </label>
           <div className="flex flex-wrap gap-2">
-            <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by status</div>
-            {isCoach && (
-              <>
-                <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by Sport</div>
-                <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by Date</div>
-              </>
-            )}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 outline-none"
+            >
+              <option value="All">All Statuses</option>
+              <option value="Lost">Lost</option>
+              <option value="Found">Found</option>
+              <option value="Claimed">Claimed</option>
+            </select>
           </div>
         </div>
       </PageCard>
 
-      <PageCard title="Item listings" subtitle="Lost and found records">
+      <PageCard title="Item listings" subtitle={`Showing ${filteredItems.length} records`}>
         <div className="grid gap-3">
-          {itemsList.map((item, index) => (
-            <div key={`${item.name}-${index}`} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-slate-900">{item.name}</p>
-                  <p className="mt-2 text-sm text-slate-600">{item.description}</p>
-                  <p className="mt-3 text-sm text-slate-500">{item.date} • {item.location}</p>
-                  <p className="mt-2 text-sm text-slate-500">Sport: {item.sport}</p>
+          {filteredItems.length === 0 ? (
+            <div className="py-8 text-center text-sm text-slate-500">No lost and found items match your criteria.</div>
+          ) : (
+            filteredItems.map((item, index) => (
+              <div key={`${item.name}-${index}`} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-slate-900">{item.name}</p>
+                    <p className="mt-2 text-sm text-slate-600">{item.description}</p>
+                    <p className="mt-3 text-sm text-slate-500">{item.date} • {item.location}</p>
+                    <p className="mt-2 text-sm text-slate-500">Sport: {item.sport}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === 'Found' ? 'bg-emerald-50 text-emerald-700' : item.status === 'Claimed' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700'}`}>
+                      {item.status}
+                    </span>
+                    <p className="mt-3 text-sm text-slate-500">Reported by {item.reportedBy}</p>
+                    <p className="mt-1 text-sm text-slate-500">Contact: {item.contact}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === 'Found' ? 'bg-emerald-50 text-emerald-700' : item.status === 'Claimed' ? 'bg-sky-50 text-sky-700' : 'bg-amber-50 text-amber-700'}`}>
-                    {item.status}
-                  </span>
-                  <p className="mt-3 text-sm text-slate-500">Reported by {item.reportedBy}</p>
-                  <p className="mt-1 text-sm text-slate-500">Contact: {item.contact}</p>
-                </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {isCoach ? (
-                  <>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Edit Details
-                    </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Update Status
-                    </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {item.status !== 'Claimed' && (
+                    <button
+                      type="button"
+                      onClick={() => handleMarkClaimed(index)}
+                      className="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+                    >
                       Mark Claimed
                     </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Contact Member
-                    </button>
-                  </>
-                ) : (
-                  <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleStatus(index)}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Toggle Status ({item.status})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => alert(`Contact phone for ${item.reportedBy}: ${item.contact}`)}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  >
                     Contact Owner
                   </button>
-                )}
+                  {isCoach && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteItem(index)}
+                      className="rounded-full bg-rose-50 px-4 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+                    >
+                      Remove Report
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
         <div className="mt-4 rounded-[1.2rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
           <div className="flex items-center gap-2">
