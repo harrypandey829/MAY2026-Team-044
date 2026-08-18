@@ -25,7 +25,6 @@ export default function EventsTable() {
           <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-600">Event Management</p>
           <h2 className="mt-1 text-xl font-semibold text-slate-900">Upcoming club events</h2>
         </div>
-        <button type="button" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-sky-300/40">Create New Event</button>
       </div>
 
       <div className="mt-5 overflow-x-auto">

@@ -1,12 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CalendarRange, FileText, Megaphone, Plus, ShieldCheck, Sparkles, Users2, Warehouse } from 'lucide-react';
+import { FileText, Megaphone, Plus, ShieldCheck, Sparkles, Users2, Warehouse } from 'lucide-react';
 
 const actions = [
   { label: 'Approve New Members', path: '/admin/members', icon: ShieldCheck },
   { label: 'Add Coach', path: '/admin/coaches', icon: Users2 },
   { label: 'Create Team', path: '/admin/teams', icon: Sparkles },
-  { label: 'Create Event', path: '/admin/events', icon: CalendarRange },
   { label: 'Add Resource', path: '/admin/resources', icon: Warehouse },
   { label: 'Create Announcement', path: '/admin/announcements', icon: Megaphone },
   { label: 'Generate Report', path: '/admin/reports', icon: FileText },
