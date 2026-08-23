@@ -23,17 +23,9 @@ class UserResponse(BaseModel):
 
     sport: str | None = None
 
-    address: str | None = None
+    is_approved: bool = True
 
-    gender: str | None = None
-
-    dob: str | None = None
-
-    emergency_contact: str | None = None
-
-    is_approved: bool = False
-
-    status: str = "Pending"
+    status: str = "Active"
 
     class Config:
         from_attributes = True
@@ -51,18 +43,9 @@ class UpdateProfileRequest(BaseModel):
 
     sport: str | None = None
 
-    address: str | None = None
-
-    gender: str | None = None
-
-    dob: str | None = None
-
-    emergency_contact: str | None = None
-
     is_approved: bool | None = None
 
     status: str | None = None
-
 
 
 

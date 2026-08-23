@@ -12,11 +12,6 @@ export interface AuthUser {
   role: UserRole;
   profile_picture_url: string | null;
   sport?: string | null;
-  address?: string | null;
-  gender?: string | null;
-  dob?: string | null;
-  emergency_contact?: string | null;
-  blood_group?: string | null;
   is_approved: boolean;
   status: string;
 }
@@ -35,11 +30,6 @@ export interface SignupRequest {
   password: string;
   role?: UserRole;
   sport?: string;
-  address?: string;
-  gender?: string;
-  dob?: string;
-  emergency_contact?: string;
-  blood_group?: string;
 }
 
 const TOKEN_KEY = 'sc_token';
@@ -55,14 +45,10 @@ export const authService = {
 
   async register(data: SignupRequest): Promise<LoginResponse> {
     const response = await api.post<LoginResponse>('/auth/signup', data);
-    // If the account is pending approval, do not set token locally
-    if (response.user.is_approved) {
-      localStorage.setItem(TOKEN_KEY, response.access_token);
-      localStorage.setItem(USER_KEY, JSON.stringify(response.user));
-    }
+    localStorage.setItem(TOKEN_KEY, response.access_token);
+    localStorage.setItem(USER_KEY, JSON.stringify(response.user));
     return response;
   },
-
 
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);

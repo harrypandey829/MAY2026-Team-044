@@ -17,9 +17,6 @@ export interface ResourceBooking {
   duration_hours: number;
   is_cancelled: boolean;
   created_at: string;
-  user_name?: string;
-  user_role?: string;
-  resource_name?: string;
 }
 
 export const resourceService = {

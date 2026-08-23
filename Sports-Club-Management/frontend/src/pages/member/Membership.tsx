@@ -21,7 +21,7 @@ export default function MembershipPage() {
   const [selectedDuration, setSelectedDuration] = useState<'Monthly' | '6-Months'>('Monthly');
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null);
   const [showCardModal, setShowCardModal] = useState(false);
-  const [, setPlans] = useState<Record<string, SportPlan>>(() => sportPlansService.getPlans());
+  const [plans, setPlans] = useState<Record<string, SportPlan>>(() => sportPlansService.getPlans());
 
   useEffect(() => {
     function handlePlansUpdate() {
@@ -44,14 +44,12 @@ export default function MembershipPage() {
     setEnrolledSports(updated);
 
     try {
+      await paymentService.create({
+        amount: String(amount),
+        payment_model: selectedDuration === 'Monthly' ? 'Monthly' : 'Annual',
+        due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      });
       if (user) {
-        await paymentService.create({
-          member_id: user.id,
-          amount: amount,
-          payment_model: selectedDuration === 'Monthly' ? 'Monthly' : 'Annual',
-          invoice_status: 'Paid',
-          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        });
         await announcementService.create({
           title: `New Sports Enrollment: ${sportName}`,
           message: `${displayName} enrolled in ${sportName} (${selectedDuration} Plan - ₹${amount}).`,

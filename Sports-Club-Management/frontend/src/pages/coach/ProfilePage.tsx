@@ -25,17 +25,12 @@ export default function ProfilePage() {
   const [firstName, setFirstName] = useState(user?.first_name || '');
   const [lastName, setLastName] = useState(user?.last_name || '');
   const [phone, setPhone] = useState(user?.phone || '');
-  const [address, setAddress] = useState(user?.address || '');
-  const [gender, setGender] = useState(user?.gender || 'Male');
-  const [dob, setDob] = useState(user?.dob || '');
-  const [emergencyContact, setEmergencyContact] = useState(user?.emergency_contact || '');
-  const [bloodGroup, setBloodGroup] = useState(user?.blood_group || '');
   const [selectedSport, setSelectedSport] = useState(user?.sport || 'Football');
 
   const [newPassword, setNewPassword] = useState('');
 
   const fullName = user ? `${user.first_name} ${user.last_name}` : 'Coach Portal';
-  const initials = user ? `${user.first_name?.[0] || 'C'}${user.last_name?.[0] || 'P'}` : 'CP';
+  const initials = user ? `${user.first_name[0]}${user.last_name[0]}` : 'CP';
 
   async function handleUpdateProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -46,16 +41,11 @@ export default function ProfilePage() {
         first_name: firstName,
         last_name: lastName,
         phone,
-        address,
-        gender,
-        dob,
-        emergency_contact: emergencyContact,
-        blood_group: bloodGroup,
       });
       setUser(updated);
       authService.updateUserLocal(updated);
       setIsEditOpen(false);
-      setFeedback('Coach profile details updated successfully!');
+      setFeedback('Profile details updated successfully!');
     } catch {
       alert('Failed to update profile');
     }
@@ -114,7 +104,7 @@ export default function ProfilePage() {
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-700">Coach Portal</p>
           <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Coach Profile</h1>
-          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Manage assigned sport discipline, credentials, and complete personal records with Admin approval workflows.</p>
+          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Manage assigned sport discipline, credentials, and account settings with Admin approval workflows.</p>
         </div>
       </section>
 
@@ -187,11 +177,6 @@ export default function ProfilePage() {
                 setFirstName(user?.first_name || '');
                 setLastName(user?.last_name || '');
                 setPhone(user?.phone || '');
-                setAddress(user?.address || '');
-                setGender(user?.gender || 'Male');
-                setDob(user?.dob || '');
-                setEmergencyContact(user?.emergency_contact || '');
-                setBloodGroup(user?.blood_group || '');
                 setIsEditOpen(true);
               }}
               className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
@@ -222,22 +207,14 @@ export default function ProfilePage() {
               ['User Role', user?.role || 'Coach'],
               ['Email Address', user?.email || '–'],
               ['Phone Number', user?.phone || 'Not set'],
-              ['Gender', user?.gender || 'Not set'],
-              ['Date of Birth', user?.dob || 'Not set'],
-              ['Emergency Contact', user?.emergency_contact || 'Not set'],
-              ['Blood Group', user?.blood_group || 'Not set'],
-              ['Assigned Sport', user?.sport || 'Football'],
+              ['Assigned Sport Discipline', user?.sport || 'Football'],
               ['Staff ID', user ? `COACH-${user.id.slice(0, 6).toUpperCase()}` : '–'],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-3.5">
+              <div key={label} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
                 <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{label}</p>
-                <p className="mt-1.5 font-semibold text-slate-900 text-sm">{value}</p>
+                <p className="mt-2 font-semibold text-slate-900">{value}</p>
               </div>
             ))}
-          </div>
-          <div className="mt-4 rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4 text-sm text-slate-700">
-            <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Address</p>
-            <p className="mt-1.5 font-semibold text-slate-900 text-sm">{user?.address || 'No address provided on record'}</p>
           </div>
           <div className="mt-4 rounded-[1.2rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
             <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand-600" /> Sport assignment changes require Admin verification before taking effect across squad rosters.</div>
@@ -249,12 +226,12 @@ export default function ProfilePage() {
         <div className="flex items-center gap-3">
           <Mail className="h-5 w-5 text-brand-600" />
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Contact & Address</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Contact</p>
             <h2 className="mt-1 text-xl font-semibold text-slate-900">Primary Contact Details</h2>
           </div>
         </div>
         <div className="mt-5 rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4 text-sm text-slate-600">
-          Email: <span className="font-semibold text-slate-900">{user?.email}</span> • Phone: <span className="font-semibold text-slate-900">{user?.phone || 'Not set'}</span> • Address: <span className="font-semibold text-slate-900">{user?.address || 'Not set'}</span>
+          Email: <span className="font-semibold text-slate-900">{user?.email}</span> • Phone: <span className="font-semibold text-slate-900">{user?.phone || 'Not set'}</span>
         </div>
       </section>
 
@@ -299,12 +276,12 @@ export default function ProfilePage() {
       {/* Edit Profile Modal */}
       {isEditOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4">
-          <form onSubmit={handleUpdateProfile} className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
+          <form onSubmit={handleUpdateProfile} className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-lg font-bold text-slate-900">Edit Profile Details</h3>
               <button type="button" onClick={() => setIsEditOpen(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
             </div>
-            <div className="mt-4 space-y-3 max-h-[75vh] overflow-y-auto pr-1">
+            <div className="mt-4 space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold uppercase text-slate-500">First Name</label>
@@ -315,51 +292,12 @@ export default function ProfilePage() {
                   <input required value={lastName} onChange={(e) => setLastName(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold uppercase text-slate-500">Phone</label>
-                  <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 202 555 0199" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase text-slate-500">Gender</label>
-                  <select value={gender} onChange={(e) => setGender(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none font-medium">
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold uppercase text-slate-500">Date of Birth</label>
-                  <input type="date" value={dob} onChange={(e) => setDob(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase text-slate-500">Blood Group</label>
-                  <select value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none font-medium">
-                    <option value="">Select Blood Group</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                  </select>
-                </div>
-              </div>
               <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Emergency Contact</label>
-                <input value={emergencyContact} onChange={(e) => setEmergencyContact(e.target.value)} placeholder="+1 202 555 9999 (Name / Relation)" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Address</label>
-                <textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Full street address..." className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none resize-none" />
+                <label className="text-xs font-semibold uppercase text-slate-500">Phone</label>
+                <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 202 555 0199" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
               </div>
             </div>
-            <div className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-3">
+            <div className="mt-6 flex justify-end gap-2">
               <button type="button" onClick={() => setIsEditOpen(false)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
               <button type="submit" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-2 text-sm font-semibold text-white">Save Changes</button>
             </div>

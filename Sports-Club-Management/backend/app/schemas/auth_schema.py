@@ -22,14 +22,6 @@ class SignupRequest(BaseModel):
 
     sport: Optional[str] = None
 
-    address: Optional[str] = None
-
-    gender: Optional[str] = None
-
-    dob: Optional[str] = None
-
-    emergency_contact: Optional[str] = None
-
 
 class LoginRequest(BaseModel):
 
@@ -56,21 +48,12 @@ class UserInToken(BaseModel):
 
     sport: Optional[str] = None
 
-    address: Optional[str] = None
+    is_approved: bool = True
 
-    gender: Optional[str] = None
-
-    dob: Optional[str] = None
-
-    emergency_contact: Optional[str] = None
-
-    is_approved: bool = False
-
-    status: str = "Pending"
+    status: str = "Active"
 
     class Config:
         from_attributes = True
-
 
 
 

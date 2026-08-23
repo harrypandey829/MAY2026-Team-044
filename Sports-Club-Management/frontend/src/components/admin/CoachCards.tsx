@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { BadgeCheck, Briefcase, Sparkles, X, Edit2, Eye } from 'lucide-react';
+import { BadgeCheck, Briefcase, Sparkles, X, Edit2, Eye, CheckCircle2, AlertCircle } from 'lucide-react';
 import userService from '../../services/userService';
 import type { AuthUser } from '../../services/authService';
 
