@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
+import paymentService from '../services/paymentService';
+import sportPlansService from '../services/sportPlansService';
+import announcementService from '../services/announcementService';
 import {
   User,
   Mail,
@@ -15,9 +18,8 @@ import {
   Trophy,
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
-import GoogleButton from '../components/GoogleButton';
 
-const sports = ['Badminton', 'Cricket', 'Football', 'Swimming', 'Tennis'] as const;
+const sports = ['Badminton', 'Cricket', 'Football', 'Swimming', 'Tennis', 'Basketball'] as const;
 
 interface FieldErrors {
   fullName?: string;
@@ -72,7 +74,6 @@ export default function Register() {
     if (!form.phone) next.phone = 'Phone number is required';
     else if (!/^[0-9+\-\s()]{7,}$/.test(form.phone)) next.phone = 'Enter a valid phone number';
     if (!form.password) next.password = 'Password is required';
-    else if (form.password.length < 6) next.password = 'Password must be at least 6 characters';
     if (!form.confirm) next.confirm = 'Please confirm your password';
     else if (form.confirm !== form.password) next.confirm = 'Passwords do not match';
     if (!form.sport) next.sport = 'Please select a sport';
@@ -114,12 +115,38 @@ export default function Register() {
           sport: form.sport,
         });
         const role = response.user.role;
-        if (role === 'Admin') navigate('/admin/dashboard');
-        else if (role === 'Coach') {
+        if (role === 'Admin') {
+          navigate('/admin/dashboard');
+        } else if (role === 'Coach') {
           authService.logout();
           alert('Coach application submitted successfully! Your account is pending admin approval before you can log in.');
           navigate('/login');
-        } else navigate('/dashboard');
+        } else {
+          // Member registration - create initial sport membership fee invoice
+          try {
+            const today = new Date().toISOString().split('T')[0];
+            const sportPlan = sportPlansService.getPlan(form.sport || 'Badminton');
+            const feeAmount = sportPlan.monthlyPrice || 1500;
+            
+            await paymentService.create({
+              member_id: response.user.id,
+              amount: feeAmount,
+              payment_model: 'Monthly',
+              invoice_status: 'Paid',
+              due_date: today,
+              paid_date: today,
+            });
+
+            await announcementService.create({
+              title: `New Member Registration: ${form.sport}`,
+              message: `${response.user.first_name} ${response.user.last_name} enrolled in ${form.sport} (Monthly Membership Fee: ₹${feeAmount.toLocaleString('en-IN')}).`,
+              created_by: response.user.id,
+            });
+          } catch (paymentErr) {
+            console.error('Registration payment creation warning:', paymentErr);
+          }
+          navigate('/dashboard');
+        }
       } catch (err) {
         setRegisterError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
       } finally {
@@ -127,7 +154,6 @@ export default function Register() {
       }
     }
   }
-
 
   function fieldState(value: string, error?: string) {
     if (touched[value] && error) return 'invalid';
@@ -154,7 +180,7 @@ export default function Register() {
       title="Start Your Journey"
       subtitle="Create your account"
       motivational="Join thousands of athletes training, competing and growing with SportsClub. Your first session is closer than you think — let's get you on the field."
-      statValue="5+"
+      statValue="6+"
       statLabel="Sports offered"
     >
       <form onSubmit={handleSubmit} className="mt-6 space-y-4 lg:mt-8" noValidate>
@@ -191,7 +217,6 @@ export default function Register() {
 
         {/* Full Name */}
         <div>
-
           <label htmlFor="fullName" className="mb-1.5 block text-sm font-semibold text-slate-700">
             Full Name
           </label>
@@ -255,7 +280,7 @@ export default function Register() {
                 value={form.phone}
                 onChange={(e) => update('phone', e.target.value)}
                 onBlur={() => markTouched('phone')}
-                placeholder="+1 (555) 000-0000"
+                placeholder="+91 90000 00000"
                 className="w-full bg-transparent py-3 text-sm text-slate-900 placeholder-slate-400 outline-none"
               />
               {states.phone === 'valid' && <CheckCircle2 className="h-5 w-5 shrink-0 text-pitch-500" />}
@@ -283,7 +308,7 @@ export default function Register() {
                 value={form.password}
                 onChange={(e) => update('password', e.target.value)}
                 onBlur={() => markTouched('password')}
-                placeholder="Min. 6 characters"
+                placeholder="Enter password"
                 className="w-full bg-transparent py-3 text-sm text-slate-900 placeholder-slate-400 outline-none"
               />
               {states.password === 'valid' && <CheckCircle2 className="h-5 w-5 shrink-0 text-pitch-500" />}
@@ -451,21 +476,6 @@ export default function Register() {
             </>
           )}
         </button>
-
-        {/* Divider */}
-        <div className="relative py-1">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              OR
-            </span>
-          </div>
-        </div>
-
-        {/* Google */}
-        <GoogleButton label="Continue with Google" />
 
         {/* Bottom link */}
         <p className="pt-2 text-center text-sm text-slate-500">

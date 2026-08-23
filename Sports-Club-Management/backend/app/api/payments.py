@@ -42,10 +42,11 @@ def create_payment(
     response_model=list[PaymentResponse]
 )
 def get_all_payments(
+    member_id: UUID | None = None,
     db: Session = Depends(get_db)
 ):
 
-    return service.get_all_payments(db)
+    return service.get_all_payments(db, member_id=member_id)
 
 
 @router.get(

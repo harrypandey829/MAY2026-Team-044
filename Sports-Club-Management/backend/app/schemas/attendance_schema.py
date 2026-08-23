@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, model_validator, field_validator
 
 from app.common.enums import AttendanceStatus
 
@@ -16,6 +16,24 @@ class MarkAttendanceRequest(BaseModel):
 
     remarks: str | None = None
 
+    rating: int | None = None
+
+    @field_validator("attendance_status", mode="before")
+    def parse_attendance_status(cls, v):
+        if isinstance(v, AttendanceStatus):
+            return v
+        if isinstance(v, str):
+            v_clean = v.strip().lower()
+            if v_clean in ("present", "p"):
+                return AttendanceStatus.PRESENT
+            if v_clean in ("absent", "a"):
+                return AttendanceStatus.ABSENT
+            if v_clean in ("late", "l"):
+                return AttendanceStatus.LATE
+            if v_clean in ("excused", "e"):
+                return AttendanceStatus.EXCUSED
+        return v
+
 
 class AttendanceResponse(BaseModel):
 
@@ -27,7 +45,9 @@ class AttendanceResponse(BaseModel):
 
     attendance_status: AttendanceStatus
 
-    remarks: str | None
+    remarks: str | None = None
+
+    rating: int | None = None
 
     marked_at: datetime
 
@@ -46,6 +66,7 @@ class AttendanceResponse(BaseModel):
                 "member_id": getattr(obj, "user_id", getattr(obj, "member_id", None)),
                 "attendance_status": getattr(obj, "status", getattr(obj, "attendance_status", None)),
                 "remarks": getattr(obj, "remarks", None),
+                "rating": getattr(obj, "rating", None),
                 "marked_at": marked_at_val,
             }
         elif isinstance(values, dict):
@@ -56,7 +77,7 @@ class AttendanceResponse(BaseModel):
                 "member_id": values.get("user_id") or values.get("member_id"),
                 "attendance_status": values.get("status") or values.get("attendance_status"),
                 "remarks": values.get("remarks"),
+                "rating": values.get("rating"),
                 "marked_at": marked_at_val,
             }
         return values
-

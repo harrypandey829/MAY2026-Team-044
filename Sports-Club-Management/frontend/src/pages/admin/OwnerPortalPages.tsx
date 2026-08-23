@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Trash2, X } from 'lucide-react';
 import AdminLayout from '../../components/admin/AdminLayout';
+
 import LostAndFoundContent from '../../components/lost-and-found/LostAndFoundContent';
 import authService, { type AuthUser } from '../../services/authService';
 import userService from '../../services/userService';
@@ -8,6 +9,8 @@ import eventService, { type Event } from '../../services/eventService';
 import resourceService, { resourceBookingService, type Resource, type ResourceBooking } from '../../services/resourceService';
 import paymentService, { type Payment } from '../../services/paymentService';
 import announcementService, { type Announcement } from '../../services/announcementService';
+import sportsService, { Sport, EquipmentUtility } from '../../services/sportsService';
+
 
 function PageHeader({ title, subtitle, badge = 'Live Backend Data' }: { title: string; subtitle: string; badge?: string }) {
   return (
@@ -57,7 +60,6 @@ export function MembersPage() {
   const [members, setMembers] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
   const [feedback, setFeedback] = useState<string | null>(null);
 
   function loadMembers() {
@@ -72,13 +74,7 @@ export function MembersPage() {
     loadMembers();
   }, []);
 
-  const filteredMembers = useMemo(() => {
-    return members.filter((m) => {
-      const matchText = `${m.first_name} ${m.last_name} ${m.email} ${m.sport || ''}`.toLowerCase().includes(query.toLowerCase());
-      const matchStatus = statusFilter === 'All' || m.status === statusFilter;
-      return matchText && matchStatus;
-    });
-  }, [members, query, statusFilter]);
+  const sports = ['Badminton', 'Football', 'Cricket', 'Tennis', 'Swimming', 'General / Other'];
 
   async function handleToggleSuspend(id: string, currentStatus: string) {
     const nextStatus = currentStatus === 'Suspended' ? 'Active' : 'Suspended';
@@ -93,104 +89,86 @@ export function MembersPage() {
 
   return (
     <AdminLayout>
-      <PageHeader title="Members Management" subtitle="Monitor real-time member registrations, active status, suspend controls, and athlete profiles across all club disciplines." />
+      <PageHeader title="Sports-Wise Members Management" subtitle="Monitor members grouped strictly by their enrolled sport discipline." />
 
       {feedback && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between mt-4">
           <span>{feedback}</span>
           <button type="button" onClick={() => setFeedback(null)}><X className="h-4 w-4" /></button>
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Total Registered Athletes" value={loading ? '…' : String(members.length)} detail="Live Database Roster" />
-        <StatCard label="Active Members" value={loading ? '…' : String(members.filter((m) => m.status === 'Active').length)} detail="Enrolled & Active" />
-        <StatCard label="Suspended Members" value={loading ? '…' : String(members.filter((m) => m.status === 'Suspended').length)} detail="Access Suspended" />
-        <StatCard label="Sports Coverage" value={loading ? '…' : String(new Set(members.flatMap((m) => (m.sport ? m.sport.split(',').map((s) => s.trim()) : [])).filter(Boolean)).size || 1)} detail="Disciplines Active" />
+      <div className="mt-4 flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-500 shadow-sm max-w-md">
+        <Search className="h-4 w-4" />
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search members by name or email"
+          className="w-full bg-transparent outline-none"
+        />
       </div>
 
-      <section className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-5 shadow-lg shadow-sky-100/70 backdrop-blur-xl sm:p-6">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            <ActionButton label="Refresh Roster" onClick={loadMembers} />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3.5 py-2 text-sm text-slate-500">
-              <Search className="h-4 w-4" />
-              <input value={query} onChange={(e) => setQuery(e.target.value)} className="w-40 bg-transparent outline-none" placeholder="Search members..." />
-            </label>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-full border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 outline-none"
-            >
-              <option value="All">All Statuses</option>
-              <option value="Active">Active</option>
-              <option value="Suspended">Suspended</option>
-            </select>
-          </div>
-        </div>
+      <div className="mt-6 space-y-8">
+        {sports.map((sportName) => {
+          const sportMembers = members.filter((m) => {
+            const mSport = m.sport || 'General / Other';
+            const matchesSport = sportName === 'General / Other'
+              ? !m.sport || m.sport === 'General / Other'
+              : mSport.toLowerCase() === sportName.toLowerCase();
+            const matchesQuery = `${m.first_name} ${m.last_name} ${m.email}`.toLowerCase().includes(query.toLowerCase());
+            return matchesSport && matchesQuery;
+          });
 
-        <div className="mt-5 overflow-hidden rounded-[1.25rem] border border-slate-200/70">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50/80 text-left text-slate-600">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Member ID</th>
-                <th className="px-4 py-3 font-semibold">Athlete Name</th>
-                <th className="px-4 py-3 font-semibold">Enrolled Sport(s)</th>
-                <th className="px-4 py-3 font-semibold">Email</th>
-                <th className="px-4 py-3 font-semibold">Phone</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 bg-white/80 text-slate-700">
-              {loading ? (
-                <tr><td colSpan={7} className="py-8 text-center text-sm text-slate-500">Loading members from database...</td></tr>
-              ) : filteredMembers.length === 0 ? (
-                <tr><td colSpan={7} className="py-8 text-center text-sm text-slate-500">No members found</td></tr>
-              ) : (
-                filteredMembers.map((m) => (
-                  <tr key={m.id}>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-900">MB-{m.id.slice(0, 6).toUpperCase()}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-900">{m.first_name} {m.last_name}</td>
-                    <td className="px-4 py-3 font-medium text-brand-700">{m.sport || 'Not Enrolled'}</td>
-                    <td className="px-4 py-3 text-slate-600">{m.email}</td>
-                    <td className="px-4 py-3 text-slate-600">{m.phone || '–'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${m.status === 'Suspended' ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'}`}>
-                        {m.status || 'Active'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      {m.status === 'Suspended' ? (
+          return (
+            <div key={sportName} className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-extrabold text-brand-800">{sportName}</span>
+                  <h3 className="text-lg font-bold text-slate-900">Enrolled Members ({sportMembers.length})</h3>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {loading ? (
+                  <p className="col-span-3 py-4 text-center text-xs text-slate-400">Loading members...</p>
+                ) : sportMembers.length === 0 ? (
+                  <p className="col-span-3 py-4 text-center text-xs text-slate-400">No members enrolled in {sportName}</p>
+                ) : (
+                  sportMembers.map((member) => (
+                    <div key={member.id} className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-600 font-bold text-white text-xs">
+                          {member.first_name[0]}{member.last_name[0]}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900">{member.first_name} {member.last_name}</p>
+                          <p className="text-xs text-slate-500">{member.email}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between border-t border-slate-200/60 pt-2 text-xs">
+                        <span className={`rounded-full px-2.5 py-0.5 font-bold ${member.status === 'Suspended' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                          {member.status || 'Active'}
+                        </span>
                         <button
                           type="button"
-                          onClick={() => handleToggleSuspend(m.id, m.status)}
-                          className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors"
+                          onClick={() => handleToggleSuspend(member.id, member.status)}
+                          className={`rounded-lg px-3 py-1 font-bold ${member.status === 'Suspended' ? 'bg-emerald-600 text-white' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}
                         >
-                          Unsuspend
+                          {member.status === 'Suspended' ? 'Unsuspend' : 'Suspend'}
                         </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleToggleSuspend(m.id, m.status)}
-                          className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
-                        >
-                          Suspend
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </AdminLayout>
   );
 }
+
 
 // ----------------------------------------------------------------------
 // 2. Coaches Page
@@ -651,68 +629,263 @@ export function CoachesPage() {
 // 3. Sports Page
 // ----------------------------------------------------------------------
 export function SportsPage() {
+  const [sports, setSports] = useState<Sport[]>([]);
   const [members, setMembers] = useState<AuthUser[]>([]);
   const [coaches, setCoaches] = useState<AuthUser[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
+  const [utilitiesMap, setUtilitiesMap] = useState<Record<string, EquipmentUtility[]>>({});
   const [loading, setLoading] = useState(true);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  // Modals
+  const [isAddSportOpen, setIsAddSportOpen] = useState(false);
+  const [newSportName, setNewSportName] = useState('');
+  const [monthlyFee, setMonthlyFee] = useState(1500);
+  const [annualFee, setAnnualFee] = useState(15000);
+  const [sportDesc, setSportDesc] = useState('');
+
+  const [isAddUtilOpen, setIsAddUtilOpen] = useState(false);
+  const [targetSport, setTargetSport] = useState('');
+  const [utilName, setUtilName] = useState('');
+  const [utilQty, setUtilQty] = useState(10);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [sList, mList, cList, eList] = await Promise.all([
+        sportsService.getAllSports(),
+        userService.getByRole('Member'),
+        userService.getByRole('Coach'),
+        eventService.getAll(),
+      ]);
+      setSports(sList);
+      setMembers(mList);
+      setCoaches(cList);
+      setEvents(eList);
+
+      const map: Record<string, EquipmentUtility[]> = {};
+      for (const s of sList) {
+        map[s.name] = await sportsService.getUtilities(s.name);
+      }
+      setUtilitiesMap(map);
+    } catch {
+      setSports([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    Promise.all([
-      userService.getByRole('Member'),
-      userService.getByRole('Coach'),
-      eventService.getAll(),
-    ])
-      .then(([mList, cList, eList]) => {
-        setMembers(mList);
-        setCoaches(cList);
-        setEvents(eList);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    loadData();
   }, []);
 
-  const sportsList = ['Football', 'Cricket', 'Badminton', 'Tennis', 'Basketball', 'Swimming'];
+  const handleAddSport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await sportsService.createSport({
+        name: newSportName,
+        monthly_fee: monthlyFee,
+        annual_fee: annualFee,
+        description: sportDesc,
+      });
+      setFeedback(`Sport '${newSportName}' successfully created!`);
+      setIsAddSportOpen(false);
+      await loadData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to add sport');
+    }
+  };
+
+  const handleDeleteSport = async (sportName: string) => {
+    if (!confirm(`Are you sure you want to delete ${sportName}?`)) return;
+    try {
+      await sportsService.deleteSport(sportName);
+      setFeedback(`Sport '${sportName}' deleted.`);
+      await loadData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete sport');
+    }
+  };
+
+  const handleAddUtility = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await sportsService.addUtility(targetSport, {
+        name: utilName,
+        total_quantity: utilQty,
+      });
+      setFeedback(`Added ${utilQty}x ${utilName} to ${targetSport}!`);
+      setIsAddUtilOpen(false);
+      await loadData();
+    } catch {
+      alert('Failed to add utility');
+    }
+  };
 
   return (
     <AdminLayout>
-      <PageHeader title="Sports Portfolio" subtitle="Manage sport disciplines, member allocations, dynamic coaching coverage per sport, and scheduled events." />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {sportsList.map((sportName) => {
-          const sportLower = sportName.toLowerCase();
-          const memberCount = members.filter((m) => m.sport && m.sport.toLowerCase().includes(sportLower)).length;
-          const coachCount = coaches.filter((c) => c.sport && c.sport.toLowerCase().includes(sportLower) && c.is_approved).length;
-          const eventCount = events.filter((e) => e.title.toLowerCase().includes(sportLower) || e.description?.toLowerCase().includes(sportLower)).length;
+      <PageHeader title="Sports & Equipment Utilities Management" subtitle="Manage official sport disciplines, membership fees, member counts, and allocated equipment stock." />
 
-          return (
-            <div key={sportName} className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-5 shadow-lg shadow-sky-100/70">
-              <div className="flex items-center justify-between">
+      {feedback && (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between mt-4">
+          <span>{feedback}</span>
+          <button type="button" onClick={() => setFeedback(null)}><X className="h-4 w-4" /></button>
+        </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setIsAddSportOpen(true)}
+          className="rounded-full bg-gradient-to-r from-brand-600 to-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-md hover:scale-105 transition-all"
+        >
+          + Add New Sport
+        </button>
+      </div>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {loading ? (
+          <p className="col-span-3 py-8 text-center text-sm text-slate-500">Loading sports portfolio...</p>
+        ) : (
+          sports.map((s) => {
+            const memberCount = members.filter((m) => m.sport && m.sport.toLowerCase() === s.name.toLowerCase()).length;
+            const coachCount = coaches.filter((c) => c.sport && c.sport.toLowerCase() === s.name.toLowerCase()).length;
+            const eventCount = events.filter((ev) => ev.sport && ev.sport.toLowerCase() === s.name.toLowerCase()).length;
+            const utilities = utilitiesMap[s.name] || [];
+            const canDelete = memberCount === 0 && coachCount === 0;
+
+            return (
+              <div key={s.name} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
                 <div>
-                  <p className="text-lg font-bold text-slate-900">{sportName}</p>
-                  <p className="text-xs font-semibold text-brand-700">Official Discipline</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">{s.name}</h3>
+                      <p className="text-xs font-semibold text-brand-600">₹{s.monthly_fee}/mo • ₹{s.annual_fee}/yr</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={!canDelete}
+                      onClick={() => handleDeleteSport(s.name)}
+                      title={!canDelete ? `Cannot remove sport while Member Count (${memberCount}) or Coach Count (${coachCount}) > 0` : 'Remove Sport'}
+                      className={`rounded-xl p-2 transition-all ${canDelete ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs">
+                    <div className="rounded-xl bg-slate-50 p-2 border border-slate-100">
+                      <p className="text-slate-500">Members</p>
+                      <p className="text-lg font-bold text-slate-900">{memberCount}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-2 border border-slate-100">
+                      <p className="text-slate-500">Coaches</p>
+                      <p className="text-lg font-bold text-slate-900">{coachCount}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-2 border border-slate-100">
+                      <p className="text-slate-500">Events</p>
+                      <p className="text-lg font-bold text-slate-900">{eventCount}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 border-t border-slate-100 pt-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Equipment Utilities</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTargetSport(s.name);
+                          setIsAddUtilOpen(true);
+                        }}
+                        className="text-xs font-bold text-brand-600 hover:text-brand-800"
+                      >
+                        + Add Utility
+                      </button>
+                    </div>
+
+                    <div className="mt-2 space-y-1.5 text-xs text-slate-600">
+                      {utilities.length === 0 ? (
+                        <p className="text-slate-400 italic">No equipment utilities added yet.</p>
+                      ) : (
+                        utilities.map((u) => (
+                          <div key={u.id} className="flex justify-between rounded-lg bg-slate-50 px-2.5 py-1.5 border border-slate-200/50">
+                            <span>{u.name}</span>
+                            <span className="font-bold text-slate-800">{u.available_quantity} / {u.total_quantity}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-brand-700">Active Discipline</div>
               </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1rem] border border-slate-200 bg-slate-50/80 p-3">
-                  <p className="text-xs text-slate-500 font-semibold uppercase">Total Members</p>
-                  <p className="mt-1 text-lg font-bold text-slate-900">{loading ? '…' : memberCount}</p>
+            );
+          })
+        )}
+      </div>
+
+      {/* ADD SPORT MODAL */}
+      {isAddSportOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <form onSubmit={handleAddSport} className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl text-slate-900">
+            <h3 className="text-lg font-bold text-slate-900">Add New Sport Discipline</h3>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-xs font-semibold uppercase text-slate-600">Sport Name</label>
+                <input required value={newSportName} onChange={(e) => setNewSportName(e.target.value)} placeholder="e.g. Squash" className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-sm outline-none" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold uppercase text-slate-600">Monthly Fee (₹)</label>
+                  <input type="number" required value={monthlyFee} onChange={(e) => setMonthlyFee(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-sm outline-none font-bold" />
                 </div>
-                <div className="rounded-[1rem] border border-slate-200 bg-slate-50/80 p-3">
-                  <p className="text-xs text-slate-500 font-semibold uppercase">Coaches Assigned</p>
-                  <p className="mt-1 text-lg font-bold text-slate-900">{loading ? '…' : coachCount}</p>
+                <div>
+                  <label className="text-xs font-semibold uppercase text-slate-600">Annual Fee (₹)</label>
+                  <input type="number" required value={annualFee} onChange={(e) => setAnnualFee(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-sm outline-none font-bold" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center justify-between text-xs text-slate-600">
-                <span>Scheduled Events: <strong>{loading ? '…' : eventCount}</strong></span>
-                <button type="button" className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">Manage</button>
+              <div>
+                <label className="text-xs font-semibold uppercase text-slate-600">Description</label>
+                <textarea rows={2} value={sportDesc} onChange={(e) => setSportDesc(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-sm outline-none" />
               </div>
             </div>
-          );
-        })}
-      </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setIsAddSportOpen(false)} className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+              <button type="submit" className="rounded-xl bg-brand-600 px-5 py-2 text-xs font-bold text-white hover:bg-brand-700">Save Sport</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ADD UTILITY MODAL */}
+      {isAddUtilOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <form onSubmit={handleAddUtility} className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl text-slate-900">
+            <h3 className="text-lg font-bold text-slate-900">Add Utility for {targetSport}</h3>
+
+            <div className="mt-4 space-y-3">
+              <div>
+                <label className="text-xs font-semibold uppercase text-slate-600">Equipment Item Name</label>
+                <input required value={utilName} onChange={(e) => setUtilName(e.target.value)} placeholder="e.g. Training Balls" className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-sm outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase text-slate-600">Quantity</label>
+                <input type="number" min="1" required value={utilQty} onChange={(e) => setUtilQty(Number(e.target.value))} className="mt-1 w-full rounded-xl border border-slate-300 p-2.5 text-sm outline-none font-bold" />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button type="button" onClick={() => setIsAddUtilOpen(false)} className="rounded-xl px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancel</button>
+              <button type="submit" className="rounded-xl bg-brand-600 px-5 py-2 text-xs font-bold text-white hover:bg-brand-700">Add Equipment</button>
+            </div>
+          </form>
+        </div>
+      )}
     </AdminLayout>
   );
 }
+
 
 // ----------------------------------------------------------------------
 // 4. Teams Page
@@ -775,22 +948,28 @@ export function TeamsPage() {
 // ----------------------------------------------------------------------
 export function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [coaches, setCoaches] = useState<AuthUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Modal
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [eventType, setEventType] = useState<'Practice' | 'Match' | 'Tournament'>('Practice');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [startTime, setStartTime] = useState('10:00');
-  const [venue, setVenue] = useState('Main Stadium');
+  // Filters & Tabs
+  const [selectedSport, setSelectedSport] = useState<string>('All');
+  const [activeTab, setActiveTab] = useState<'Upcoming' | 'Past'>('Upcoming');
+  const [viewingEvent, setViewingEvent] = useState<Event | null>(null);
+
+  const sportsList = ['All', 'Football', 'Cricket', 'Badminton', 'Tennis', 'Basketball', 'Swimming'];
 
   function loadEvents() {
     setLoading(true);
-    eventService.getAll()
-      .then(setEvents)
-      .catch(() => setEvents([]))
+    Promise.all([eventService.getAll(), userService.getByRole('Coach')])
+      .then(([evList, cList]) => {
+        setEvents(evList);
+        setCoaches(cList);
+      })
+      .catch(() => {
+        setEvents([]);
+        setCoaches([]);
+      })
       .finally(() => setLoading(false));
   }
 
@@ -798,108 +977,188 @@ export function EventsPage() {
     loadEvents();
   }, []);
 
-  async function handleCreateEvent(e: React.FormEvent) {
-    e.preventDefault();
-    const currentUser = authService.getCurrentUser();
-    try {
-      await eventService.create({
-        title,
-        event_type: eventType,
-        date,
-        start_time: startTime,
-        venue,
-        created_by: currentUser ? currentUser.id : 'admin-001',
-      });
-      setIsCreateOpen(false);
-      setTitle('');
-      setFeedback('New event created successfully!');
-      loadEvents();
-    } catch {
-      alert('Failed to create event');
-    }
-  }
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const filteredEvents = useMemo(() => {
+    return events.filter((ev) => {
+      const matchesSport = selectedSport === 'All' || (ev.sport && ev.sport.toLowerCase() === selectedSport.toLowerCase());
+      const isPast = String(ev.date) < todayStr;
+      const matchesTime = activeTab === 'Past' ? isPast : !isPast;
+      return matchesSport && matchesTime;
+    });
+  }, [events, selectedSport, activeTab, todayStr]);
+
+  const coachMap = useMemo(() => {
+    const map = new Map<string, AuthUser>();
+    coaches.forEach((c) => map.set(c.id, c));
+    return map;
+  }, [coaches]);
 
   return (
     <AdminLayout>
-      <PageHeader title="Events Management" subtitle="Schedule club practices, match fixtures, tournaments, and facility events with live calendar feeds." />
+      <PageHeader title="Events & Match Operations Overview" subtitle="Monitor all sports matches and training sessions scheduled by coaches across the club." />
 
       {feedback && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between mt-4">
           <span>{feedback}</span>
           <button type="button" onClick={() => setFeedback(null)}><X className="h-4 w-4" /></button>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <ActionButton label="Create New Event" onClick={() => setIsCreateOpen(true)} />
-        <ActionButton label="Refresh Event Feed" onClick={loadEvents} variant="secondary" />
+      <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
+        <div className="flex flex-wrap gap-2">
+          <ActionButton label="Refresh Events Feed" onClick={loadEvents} />
+        </div>
+
+        {/* TIME RANGE TAB SWITCHER */}
+        <div className="flex rounded-full bg-slate-200/80 p-1 text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => setActiveTab('Upcoming')}
+            className={`rounded-full px-4 py-2 transition-all ${activeTab === 'Upcoming' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+          >
+            Active & Upcoming
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('Past')}
+            className={`rounded-full px-4 py-2 transition-all ${activeTab === 'Past' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600 hover:text-slate-900'}`}
+          >
+            Completed Past Events
+          </button>
+        </div>
+      </div>
+
+      {/* SPORT DISCIPLINE FILTER CHIPS */}
+      <div className="mt-4 flex flex-wrap gap-2">
+        {sportsList.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => setSelectedSport(s)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all ${
+              selectedSport === s
+                ? 'bg-brand-600 text-white shadow-sm'
+                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            {s} {s === 'All' ? `(${events.length})` : ''}
+          </button>
+        ))}
       </div>
 
       <div className="mt-4 rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-5 shadow-lg shadow-sky-100/70">
-        <p className="text-lg font-bold text-slate-900">Live Scheduled Events ({events.length})</p>
+        <p className="text-lg font-bold text-slate-900">
+          {activeTab === 'Upcoming' ? "Active & Upcoming Events" : "Completed Past Events Archive"} ({filteredEvents.length})
+        </p>
+
         <div className="mt-4 space-y-3">
           {loading ? (
-            <p className="py-6 text-center text-sm text-slate-500">Loading events...</p>
-          ) : events.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">No events found</p>
+            <p className="py-6 text-center text-sm text-slate-500">Loading scheduled events...</p>
+          ) : filteredEvents.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-500">No {selectedSport !== 'All' ? selectedSport : ''} {activeTab.toLowerCase()} events scheduled yet.</p>
           ) : (
-            events.map((ev) => (
-              <div key={ev.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[1rem] border border-slate-200 bg-slate-50/80 p-3">
-                <div>
-                  <p className="font-semibold text-slate-900">{ev.title}</p>
-                  <p className="text-xs text-slate-500">{ev.event_type} • Venue: {ev.venue}</p>
+            filteredEvents.map((ev) => {
+              const coachObj = coachMap.get(ev.created_by);
+              const coachName = coachObj ? `${coachObj.first_name} ${coachObj.last_name}` : 'Assigned Coach';
+
+              return (
+                <div key={ev.id} className="flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] border border-slate-200 bg-slate-50/80 p-4 transition-all hover:bg-white hover:shadow-md">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-bold text-brand-800">{ev.sport || 'General'}</span>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${ev.event_type === 'Match' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-brand-700'}`}>{ev.event_type}</span>
+                    </div>
+                    <h4 className="mt-2 text-base font-bold text-slate-900">{ev.title}</h4>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Arranged by: <span className="font-semibold text-slate-800">{coachName}</span> • Venue: <span className="font-semibold text-slate-800">{ev.venue}</span>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-bold text-brand-800">
+                      {eventService.formatDate(ev.date)} @ {eventService.formatTime(ev.start_time)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setViewingEvent(ev)}
+                      className="rounded-full border border-slate-300 bg-white px-4 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-sm"
+                    >
+                      View Details
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-brand-700">
-                    {eventService.formatDate(ev.date)} @ {eventService.formatTime(ev.start_time)}
-                  </span>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
 
-      {isCreateOpen && (
+      {/* READ-ONLY VIEW EVENT DETAILS MODAL */}
+      {viewingEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4">
-          <form onSubmit={handleCreateEvent} className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-lg rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl text-slate-900">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900">Create Club Event</h3>
-              <button type="button" onClick={() => setIsCreateOpen(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
+              <div>
+                <span className="rounded-full bg-brand-100 px-3 py-0.5 text-xs font-bold text-brand-800">{viewingEvent.sport || 'General'}</span>
+                <h3 className="mt-2 text-xl font-bold text-slate-900">{viewingEvent.title}</h3>
+              </div>
+              <button type="button" onClick={() => setViewingEvent(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
             </div>
-            <div className="mt-4 space-y-3">
-              <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Event Title</label>
-                <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Summer Championship Match" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Event Category</label>
-                <select value={eventType} onChange={(e) => setEventType(e.target.value as typeof eventType)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none font-semibold">
-                  <option value="Practice">Practice Session</option>
-                  <option value="Match">Match Fixture</option>
-                  <option value="Tournament">Tournament</option>
-                </select>
-              </div>
+
+            <div className="mt-4 space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold uppercase text-slate-500">Date</label>
-                  <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <p className="uppercase text-slate-400 font-bold text-[10px]">Event Category</p>
+                  <p className="mt-1 font-bold text-slate-900">{viewingEvent.event_type}</p>
                 </div>
-                <div>
-                  <label className="text-xs font-semibold uppercase text-slate-500">Start Time</label>
-                  <input type="time" required value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <p className="uppercase text-slate-400 font-bold text-[10px]">Sport Discipline</p>
+                  <p className="mt-1 font-bold text-brand-700">{viewingEvent.sport || 'General'}</p>
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Venue / Location</label>
-                <input required value={venue} onChange={(e) => setVenue(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <p className="uppercase text-slate-400 font-bold text-[10px]">Arranging Coach</p>
+                <p className="mt-1 font-bold text-slate-900">
+                  {coachMap.get(viewingEvent.created_by)
+                    ? `${coachMap.get(viewingEvent.created_by)?.first_name} ${coachMap.get(viewingEvent.created_by)?.last_name} (${coachMap.get(viewingEvent.created_by)?.email})`
+                    : 'Assigned Coach / Club Staff'}
+                </p>
               </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <p className="uppercase text-slate-400 font-bold text-[10px]">Venue Location</p>
+                  <p className="mt-1 font-bold text-slate-900">{viewingEvent.venue}</p>
+                </div>
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <p className="uppercase text-slate-400 font-bold text-[10px]">Scheduled Date & Time</p>
+                  <p className="mt-1 font-bold text-slate-900">{viewingEvent.date} @ {eventService.formatTime(viewingEvent.start_time)}</p>
+                </div>
+              </div>
+
+              {viewingEvent.description && (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <p className="uppercase text-slate-400 font-bold text-[10px]">Event Description & Notes</p>
+                  <p className="mt-1 font-medium text-slate-700">{viewingEvent.description}</p>
+                </div>
+              )}
+
+              {viewingEvent.opponent && (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <p className="uppercase text-slate-400 font-bold text-[10px]">Match Opponent</p>
+                  <p className="mt-1 font-bold text-slate-900">{viewingEvent.opponent}</p>
+                </div>
+              )}
             </div>
-            <div className="mt-6 flex justify-end gap-2">
-              <button type="button" onClick={() => setIsCreateOpen(false)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
-              <button type="submit" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-2 text-sm font-semibold text-white">Save Event</button>
+
+            <div className="mt-6 flex justify-end border-t border-slate-100 pt-4">
+              <button type="button" onClick={() => setViewingEvent(null)} className="rounded-full bg-slate-800 px-5 py-2 text-xs font-bold text-white hover:bg-slate-900">
+                Close Event Details
+              </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
     </AdminLayout>
@@ -907,7 +1166,7 @@ export function EventsPage() {
 }
 
 // ----------------------------------------------------------------------
-// 6. Resources Page
+// 6. Resources Page (Venue Management & Approvals)
 // ----------------------------------------------------------------------
 export function ResourcesPage() {
   const [resources, setResources] = useState<Resource[]>([]);
@@ -915,20 +1174,24 @@ export function ResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  // Add Resource Modal
+  const pendingCount = useMemo(() => {
+    return bookings.filter((b) => b.status === 'PENDING').length;
+  }, [bookings]);
+
+  // Add Venue Modal
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [name, setName] = useState('');
-  const [resourceType, setResourceType] = useState('Facility');
-  const [quantity, setQuantity] = useState('1');
+  const [capacity, setCapacity] = useState('50');
 
   function loadData() {
     setLoading(true);
-    Promise.all([resourceService.getAll(), resourceBookingService.getAll()])
+    const p1 = resourceService.getAll().catch(() => []);
+    const p2 = resourceBookingService.getAll().catch(() => []);
+    Promise.all([p1, p2])
       .then(([rList, bList]) => {
-        setResources(rList);
-        setBookings(bList);
+        setResources(Array.isArray(rList) ? rList : []);
+        setBookings(Array.isArray(bList) ? bList : []);
       })
-      .catch(() => {})
       .finally(() => setLoading(false));
   }
 
@@ -941,98 +1204,187 @@ export function ResourcesPage() {
     try {
       await resourceService.create({
         name,
-        resource_type: resourceType,
-        quantity: Number(quantity) || 1,
+        resource_type: 'Facility Ground',
+        capacity: Number(capacity) || 50,
+        quantity: 1,
       });
       setIsAddOpen(false);
       setName('');
-      setFeedback('New resource facility added to inventory!');
-      loadData();
-    } catch {
-      alert('Failed to add resource');
+      setCapacity('50');
+      setFeedback(`New venue '${name}' (Capacity: ${capacity}) created successfully! Saved directly to Database.`);
+      await loadData();
+    } catch (err) {
+      alert('Failed to create venue in database');
     }
   }
 
+  const handleUpdateStatus = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+    try {
+      await resourceBookingService.updateStatus(id, status);
+      setFeedback(`Coach venue booking request ${status.toLowerCase()}!`);
+      await loadData();
+    } catch {
+      alert('Failed to update booking status');
+    }
+  };
+
   return (
     <AdminLayout>
-      <PageHeader title="Resources & Facilities" subtitle="Track grounds, sports equipment, facility maintenance, and member booking requests." />
+      <PageHeader title="Resources & Venue Booking Approvals" subtitle="Create sports venues, dismiss unused fields, and approve coach venue booking requests." />
 
       {feedback && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between">
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-semibold text-emerald-800 flex items-center justify-between mt-4">
           <span>{feedback}</span>
           <button type="button" onClick={() => setFeedback(null)}><X className="h-4 w-4" /></button>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <ActionButton label="Add Facility / Resource" onClick={() => setIsAddOpen(true)} />
-        <ActionButton label="Refresh Inventory" onClick={loadData} variant="secondary" />
+      <div className="flex flex-wrap gap-2 mt-4">
+        <ActionButton label="Create New Venue" onClick={() => setIsAddOpen(true)} />
+        <ActionButton label="Refresh Venue Requests" onClick={loadData} variant="secondary" />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-3 mt-4">
-        {loading ? (
-          <p className="col-span-3 py-6 text-center text-sm text-slate-500">Loading resources...</p>
-        ) : resources.length === 0 ? (
-          <p className="col-span-3 py-6 text-center text-sm text-slate-500">No resources found</p>
-        ) : (
-          resources.map((res) => (
-            <div key={res.id} className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-5 shadow-lg shadow-sky-100/70">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-900">{res.name}</h3>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${res.is_available ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
-                  {res.is_available ? 'Available' : 'Unavailable'}
-                </span>
-              </div>
-              <p className="mt-2 text-xs text-slate-500">Type: {res.resource_type} • Quantity: {res.quantity}</p>
+      {/* REGISTERED VENUES SECTION (ALWAYS VISIBLE) */}
+      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-slate-900">Registered Club Venues ({resources.length})</h2>
+          <span className="text-xs text-slate-500">Created by Admin • Saved in DB</span>
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {loading ? (
+            <p className="col-span-3 py-6 text-center text-xs text-slate-400">Loading registered venues from DB...</p>
+          ) : resources.length === 0 ? (
+            <div className="col-span-3 rounded-2xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-500">
+              No registered venues in database. Click <span className="font-bold text-brand-700">&quot;Create New Venue&quot;</span> above to add your first facility.
             </div>
-          ))
-        )}
-      </div>
-
-      <section className="rounded-[1.5rem] border border-slate-200/70 bg-white/85 p-5 shadow-lg shadow-sky-100/70 mt-4">
-        <p className="text-lg font-bold text-slate-900">Live Resource Booking Requests ({bookings.length})</p>
-        <div className="mt-4 space-y-3">
-          {bookings.length === 0 ? (
-            <p className="py-4 text-center text-sm text-slate-500">No booking requests submitted yet.</p>
           ) : (
-            bookings.map((b) => (
-              <div key={b.id} className="flex items-center justify-between rounded-[1rem] border border-slate-200 bg-slate-50/80 p-3 text-sm">
-                <span>Booking ID: {b.id.slice(0, 8)} • Date: {b.booking_date} ({b.duration_hours} hrs)</span>
-                <span className="font-bold text-emerald-700">{b.is_cancelled ? 'Cancelled' : 'Confirmed'}</span>
-              </div>
-            ))
+            resources.map((r) => {
+              const hasActiveBooking = bookings.some(
+                (b) => b.venue_name?.toLowerCase() === r.name.toLowerCase() && b.status === 'APPROVED'
+              );
+              return (
+                <div key={r.id} className="rounded-2xl border border-slate-200 p-4 bg-slate-50/60 flex items-center justify-between shadow-sm">
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{r.name}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Capacity: <span className="font-bold text-slate-800">{r.capacity || 50}</span> athletes</p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={hasActiveBooking}
+                    onClick={async () => {
+                      if (!confirm(`Are you sure you want to dismiss venue '${r.name}'?`)) return;
+                      try {
+                        await resourceService.delete(r.id);
+                        setFeedback(`Venue '${r.name}' dismissed and deleted from database.`);
+                        loadData();
+                      } catch {
+                        alert('Failed to dismiss venue');
+                      }
+                    }}
+                    title={hasActiveBooking ? 'Cannot dismiss venue while actively booked by a coach' : 'Dismiss venue'}
+                    className={`rounded-xl p-2 transition-all ${
+                      hasActiveBooking ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                    }`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </section>
 
+      {/* COACH VENUE BOOKING REQUESTS LOG */}
+      <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-900">Coach Venue Booking Requests ({bookings.length})</h2>
+          {pendingCount > 0 && (
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+              {pendingCount} Pending Approval
+            </span>
+          )}
+        </div>
+
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-600">
+            <thead className="bg-slate-100/80 text-xs font-semibold uppercase text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Venue / Court</th>
+                <th className="px-4 py-3">Sport</th>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Time Slot / Remarks</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {loading ? (
+                <tr><td colSpan={6} className="py-8 text-center text-xs text-slate-400">Loading booking requests...</td></tr>
+              ) : bookings.length === 0 ? (
+                <tr><td colSpan={6} className="py-8 text-center text-xs text-slate-400">No venue booking requests submitted by coaches yet.</td></tr>
+              ) : (
+                bookings.map((b) => (
+                  <tr key={b.id} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 font-bold text-slate-900">{b.venue_name || 'Admin Venue'}</td>
+                    <td className="px-4 py-3">{b.sport_name || 'Badminton'}</td>
+                    <td className="px-4 py-3 text-xs font-semibold">{String(b.booking_date)}</td>
+                    <td className="px-4 py-3 text-xs text-slate-600">{b.remarks || (b.start_time ? `${b.start_time} - ${b.end_time}` : 'FN/AN Slot')}</td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${b.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : b.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800'}`}>
+                        {b.status || 'PENDING'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {b.status !== 'APPROVED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(b.id, 'APPROVED')}
+                          className="mr-2 rounded-lg bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
+                        >
+                          Accept
+                        </button>
+                      )}
+                      {b.status !== 'REJECTED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(b.id, 'REJECTED')}
+                          className="rounded-lg bg-rose-50 border border-rose-200 px-3 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100"
+                        >
+                          Reject
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* CREATE VENUE MODAL */}
       {isAddOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4">
           <form onSubmit={handleAddResource} className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900">Add Resource / Equipment</h3>
+              <h3 className="text-lg font-bold text-slate-900">Create New Venue</h3>
               <button type="button" onClick={() => setIsAddOpen(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button>
             </div>
             <div className="mt-4 space-y-3">
               <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Resource Name</label>
-                <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Main Football Pitch" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                <label className="text-xs font-semibold uppercase text-slate-500">Venue Name</label>
+                <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Main Stadium Pitch A" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
               </div>
               <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Type</label>
-                <select value={resourceType} onChange={(e) => setResourceType(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none font-semibold">
-                  <option value="Facility">Facility Ground</option>
-                  <option value="Equipment">Sports Gear / Kit</option>
-                  <option value="Court">Sports Court</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold uppercase text-slate-500">Quantity</label>
-                <input type="number" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
+                <label className="text-xs font-semibold uppercase text-slate-500">Capacity Number</label>
+                <input type="number" min="1" required value={capacity} onChange={(e) => setCapacity(e.target.value)} placeholder="50" className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm outline-none" />
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-2">
               <button type="button" onClick={() => setIsAddOpen(false)} className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600">Cancel</button>
-              <button type="submit" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-2 text-sm font-semibold text-white">Save Resource</button>
+              <button type="submit" className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-5 py-2 text-sm font-semibold text-white">Create Venue</button>
             </div>
           </form>
         </div>
@@ -1040,6 +1392,7 @@ export function ResourcesPage() {
     </AdminLayout>
   );
 }
+
 
 import sportPlansService, { type SportPlan } from '../../services/sportPlansService';
 
@@ -1174,11 +1527,23 @@ export function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadPayments() {
+    setLoading(true);
     paymentService.getAll()
       .then(setPayments)
       .catch(() => setPayments([]))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadPayments();
+
+    function handlePaymentEvent() {
+      loadPayments();
+    }
+
+    window.addEventListener('club_payment_completed', handlePaymentEvent);
+    return () => window.removeEventListener('club_payment_completed', handlePaymentEvent);
   }, []);
 
   const totalRevenue = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
@@ -1403,6 +1768,13 @@ export function ReportsPage() {
 
   useEffect(() => {
     loadData();
+
+    function handlePaymentEvent() {
+      loadData();
+    }
+
+    window.addEventListener('club_payment_completed', handlePaymentEvent);
+    return () => window.removeEventListener('club_payment_completed', handlePaymentEvent);
   }, []);
 
   const totalRevenue = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);

@@ -39,16 +39,14 @@ const sidebarItems: SidebarItem[] = [
   { name: 'My Team', icon: Users, route: '/coach/team' },
   { name: 'Training Sessions', icon: Sparkles, route: '/coach/training' },
   { name: 'Matches', icon: Trophy, route: '/coach/matches' },
-  { name: 'Attendance', icon: ClipboardCheck, route: '/coach/attendance' },
   { name: 'Team Calendar', icon: CalendarDays, route: '/coach/calendar' },
-  { name: 'Player Availability', icon: UserRound, route: '/coach/availability' },
-  { name: 'Performance', icon: Sparkles, route: '/coach/performance' },
   { name: 'Announcements', icon: MessageSquareText, route: '/coach/announcements' },
-  { name: 'Equipment Booking', icon: BookOpen, route: '/coach/equipment' },
+  { name: 'Venue Booking', icon: BookOpen, route: '/coach/equipment' },
   { name: 'Lost & Found', icon: SearchCheck, route: '/coach/lost-and-found' },
   { name: 'Profile', icon: ShieldCheck, route: '/coach/profile' },
   { name: 'Settings', icon: FileText, route: '/coach/settings' },
 ];
+
 
 interface CoachPortalLayoutProps {
   children: ReactNode;

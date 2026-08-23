@@ -73,7 +73,6 @@ function LandingPage() {
         <WhyJoin />
         <Membership />
         <HowItWorks />
-        <Events />
         <Coaches />
         <MemberBenefits />
         <Testimonials />
@@ -136,10 +135,11 @@ export default function App() {
         <Route path="/coach/team" element={<ProtectedCoachRoute><MyTeamPage /></ProtectedCoachRoute>} />
         <Route path="/coach/training" element={<ProtectedCoachRoute><TrainingSessionsPage /></ProtectedCoachRoute>} />
         <Route path="/coach/matches" element={<ProtectedCoachRoute><MatchesPage /></ProtectedCoachRoute>} />
-        <Route path="/coach/attendance" element={<ProtectedCoachRoute><AttendancePage /></ProtectedCoachRoute>} />
+        <Route path="/coach/attendance" element={<Navigate to="/coach/training" replace />} />
         <Route path="/coach/calendar" element={<ProtectedCoachRoute><TeamCalendarPage /></ProtectedCoachRoute>} />
-        <Route path="/coach/availability" element={<ProtectedCoachRoute><PlayerAvailabilityPage /></ProtectedCoachRoute>} />
-        <Route path="/coach/performance" element={<ProtectedCoachRoute><PerformancePage /></ProtectedCoachRoute>} />
+        <Route path="/coach/availability" element={<Navigate to="/coach/training" replace />} />
+
+        <Route path="/coach/performance" element={<Navigate to="/coach/training" replace />} />
         <Route path="/coach/announcements" element={<ProtectedCoachRoute><CoachAnnouncementsPage /></ProtectedCoachRoute>} />
         <Route path="/coach/equipment" element={<ProtectedCoachRoute><EquipmentPage /></ProtectedCoachRoute>} />
         <Route path="/coach/lost-and-found" element={<ProtectedCoachRoute><CoachLostAndFoundPage /></ProtectedCoachRoute>} />

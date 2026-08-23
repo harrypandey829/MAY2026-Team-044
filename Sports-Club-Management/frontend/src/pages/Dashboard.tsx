@@ -3,7 +3,6 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import {
   Bell,
   CalendarDays,
-  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   Clock3,
@@ -17,9 +16,7 @@ import {
   Search,
   Settings as SettingsIcon,
   Sparkles,
-  Target,
   TrendingUp,
-  Trophy,
   UserCircle2,
   Users,
 } from 'lucide-react';
@@ -29,7 +26,6 @@ import authService from '../services/authService';
 import announcementService, { type Announcement } from '../services/announcementService';
 import eventService, { type Event } from '../services/eventService';
 import attendanceService, { type AttendanceRecord } from '../services/attendanceService';
-import performanceService, { type PerformanceRecord } from '../services/performanceService';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -40,11 +36,9 @@ export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
-  const [performanceRecords, setPerformanceRecords] = useState<PerformanceRecord[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
-  const [loadingPerformance, setLoadingPerformance] = useState(true);
 
   const user = authService.getCurrentUser();
 
@@ -62,7 +56,11 @@ export default function Dashboard() {
     if (!user) return;
 
     eventService.getAll()
-      .then((data) => setEvents(eventService.getUpcoming(data).slice(0, 3)))
+      .then((data) => {
+        const userSport = user?.sport || 'Badminton';
+        const sportEvents = data.filter((e) => !e.sport || e.sport.toLowerCase() === userSport.toLowerCase());
+        setEvents(eventService.getUpcoming(sportEvents).slice(0, 3));
+      })
       .catch(() => setEvents([]))
       .finally(() => setLoadingEvents(false));
 
@@ -75,11 +73,6 @@ export default function Dashboard() {
       .then(setAttendanceRecords)
       .catch(() => setAttendanceRecords([]))
       .finally(() => setLoadingAttendance(false));
-
-    performanceService.getMemberHistory(user.id)
-      .then(setPerformanceRecords)
-      .catch(() => setPerformanceRecords([]))
-      .finally(() => setLoadingPerformance(false));
   }, [user?.id]);
 
   function handleLogout() {
@@ -106,35 +99,30 @@ export default function Dashboard() {
     return result;
   }, [attendanceRecords]);
 
-  const streakDays = useMemo(() => {
-    let streak = 0;
-    for (let i = attendanceRecords.length - 1; i >= 0; i--) {
-      if (attendanceRecords[i].attendance_status === 'Present' || attendanceRecords[i].attendance_status === 'Late') {
-        streak++;
-      } else {
-        break;
-      }
-    }
-    return streak;
-  }, [attendanceRecords]);
-
-  const performanceTotals = useMemo(
-    () => performanceService.getTotals(performanceRecords),
-    [performanceRecords]
+  // Rated records from attendance & performance logs
+  const ratedAttendanceRecords = useMemo(
+    () => attendanceRecords.filter((r) => r.rating !== undefined && r.rating !== null && r.rating > 0),
+    [attendanceRecords]
   );
 
+  const avgCoachRating = useMemo(() => {
+    if (ratedAttendanceRecords.length === 0) return null;
+    const sum = ratedAttendanceRecords.reduce((acc, r) => acc + (r.rating || 0), 0);
+    return sum / ratedAttendanceRecords.length;
+  }, [ratedAttendanceRecords]);
+
   const performanceScore = useMemo(() => {
-    if (performanceTotals.avg_rating !== null && performanceTotals.avg_rating > 0) {
-      return `${Math.round((performanceTotals.avg_rating / 10) * 100)}%`;
+    if (avgCoachRating !== null && avgCoachRating > 0) {
+      return `${Math.round((avgCoachRating / 10) * 100)}%`;
     }
-    return performanceRecords.length > 0 ? `${Math.min(100, performanceRecords.length * 20)}%` : '0%';
-  }, [performanceTotals, performanceRecords]);
+    return attendanceRecords.length > 0 ? `${Math.min(100, attendanceRecords.length * 20)}%` : '0%';
+  }, [avgCoachRating, attendanceRecords.length]);
 
   const latestFeedback = useMemo(() => {
-    if (performanceRecords.length === 0) return null;
-    const withRemarks = [...performanceRecords].reverse().find((r) => r.remarks && r.remarks.trim().length > 0);
+    if (attendanceRecords.length === 0) return null;
+    const withRemarks = [...attendanceRecords].reverse().find((r) => r.remarks && r.remarks.trim().length > 0);
     return withRemarks ? withRemarks.remarks : null;
-  }, [performanceRecords]);
+  }, [attendanceRecords]);
 
   const nextEvent = useMemo(() => (events.length > 0 ? events[0] : null), [events]);
 
@@ -168,59 +156,35 @@ export default function Dashboard() {
       },
       {
         title: 'Performance Score',
-        value: loadingPerformance ? '...' : performanceScore,
-        subtitle: performanceTotals.avg_rating !== null
-          ? `Avg rating ${performanceTotals.avg_rating.toFixed(1)}/10`
+        value: loadingAttendance ? '...' : performanceScore,
+        subtitle: avgCoachRating !== null
+          ? `Avg rating ${avgCoachRating.toFixed(1)}/10`
           : 'Based on coach ratings',
         icon: <TrendingUp className="h-5 w-5" />,
         accent: 'bg-gradient-to-br from-amber-500 to-orange-500',
-        trend: performanceRecords.length > 0 ? `${performanceRecords.length} sessions` : 'No data',
+        trend: ratedAttendanceRecords.length > 0 ? `${ratedAttendanceRecords.length} rated sessions` : 'No data',
       },
     ],
-    [nextEvent, loadingAttendance, attendanceRate, presentCount, attendanceRecords.length, loadingEvents, events.length, loadingPerformance, performanceScore, performanceTotals.avg_rating, performanceRecords.length],
+    [nextEvent, loadingAttendance, attendanceRate, presentCount, attendanceRecords.length, loadingEvents, events.length, performanceScore, avgCoachRating, ratedAttendanceRecords.length],
   );
 
   const performanceMetrics = useMemo(
     () => [
-      { label: 'Matches Played', value: String(performanceRecords.length), note: `${performanceRecords.length} total sessions` },
-      { label: 'Goals', value: String(performanceTotals.goals), note: 'Total goals recorded' },
-      { label: 'Assists', value: String(performanceTotals.assists), note: 'Passes leading to goals' },
+      { label: 'Sessions Logged', value: String(attendanceRecords.length), note: `${attendanceRecords.length} total sessions` },
+      { label: 'Sessions Evaluated', value: String(ratedAttendanceRecords.length), note: 'Rated by coach' },
       {
-        label: 'Performance Trend',
-        value: performanceTotals.avg_rating !== null ? `${performanceTotals.avg_rating.toFixed(1)} / 10` : 'N/A',
-        note: 'Average coach rating',
+        label: 'Peak Rating',
+        value: ratedAttendanceRecords.length > 0 ? `${Math.max(...ratedAttendanceRecords.map((r) => r.rating!))} / 10` : 'N/A',
+        note: 'Highest score',
+      },
+      {
+        label: 'Average Coach Rating',
+        value: avgCoachRating !== null ? `${avgCoachRating.toFixed(1)} / 10` : 'N/A',
+        note: 'Overall rating trend',
       },
     ],
-    [performanceRecords.length, performanceTotals]
+    [attendanceRecords.length, ratedAttendanceRecords, avgCoachRating]
   );
-
-  const achievements = useMemo(() => {
-    const list = [];
-    if (attendanceRate >= 80 && attendanceRecords.length > 0) {
-      list.push({ title: 'High Attendance', detail: `${attendanceRate}% session attendance rate`, icon: CheckCircle2 });
-    } else {
-      list.push({ title: 'Attendance Target', detail: 'Aim for 80%+ session attendance', icon: CheckCircle2 });
-    }
-
-    if (performanceTotals.goals > 0) {
-      list.push({ title: 'Goal Scorer', detail: `${performanceTotals.goals} goals recorded this season`, icon: Target });
-    } else {
-      list.push({ title: 'Active Participant', detail: 'Participate in sessions to record stats', icon: Target });
-    }
-
-    if (performanceTotals.avg_rating !== null && performanceTotals.avg_rating >= 8) {
-      list.push({ title: 'Top Performer', detail: `Achieved ${performanceTotals.avg_rating.toFixed(1)}/10 coach rating`, icon: Trophy });
-    } else {
-      list.push({ title: 'Rising Star', detail: 'Keep training to boost your coach rating', icon: Sparkles });
-    }
-
-    if (streakDays > 0) {
-      list.push({ title: 'Consistent Player', detail: `${streakDays} session attendance streak`, icon: Sparkles });
-    } else {
-      list.push({ title: 'Club Member', detail: 'Member of SportsClub community', icon: Trophy });
-    }
-    return list;
-  }, [attendanceRate, attendanceRecords.length, performanceTotals, streakDays]);
 
   const role = authService.getRole();
 
@@ -560,30 +524,6 @@ export default function Dashboard() {
                     {latestFeedback ? `“${latestFeedback}”` : 'No feedback recorded yet. Your coach will add notes after your sessions.'}
                   </p>
                 </div>
-              </div>
-            </section>
-
-            <section className="rounded-[2rem] border border-white/70 bg-white/85 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl sm:p-6">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand-600">Achievements</p>
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">Badges earned</h2>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                {achievements.map((achievement) => {
-                  const Icon = achievement.icon;
-                  return (
-                    <div key={achievement.title} className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                      <div className="rounded-2xl bg-gradient-to-br from-brand-500 to-emerald-500 p-3 text-white shadow-lg shadow-sky-300/40">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <p className="mt-4 text-lg font-semibold text-slate-900">{achievement.title}</p>
-                      <p className="mt-2 text-sm text-slate-600">{achievement.detail}</p>
-                    </div>
-                  );
-                })}
               </div>
             </section>
           </main>

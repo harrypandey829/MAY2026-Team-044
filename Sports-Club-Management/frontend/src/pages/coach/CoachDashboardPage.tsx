@@ -32,7 +32,17 @@ export default function CoachDashboardPage() {
         setMembers(filtered);
       })
       .catch(() => setMembers([]));
-    eventService.getAll().then(setEvents).catch(() => setEvents([]));
+    eventService
+      .getAll()
+      .then((data) => {
+        const sportLower = coachSport.toLowerCase();
+        const filtered = data.filter(
+          (e) => !e.sport || e.sport.toLowerCase().includes(sportLower) || e.title.toLowerCase().includes(sportLower)
+        );
+        setEvents(filtered);
+      })
+      .catch(() => setEvents([]));
+
     announcementService.getAll().then((list) => setAnnouncementsCount(list.length)).catch(() => setAnnouncementsCount(0));
     resourceService.getAll().then((list) => setResourcesCount(list.length)).catch(() => setResourcesCount(0));
   }, [coachSport]);

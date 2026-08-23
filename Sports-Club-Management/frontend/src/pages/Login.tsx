@@ -2,7 +2,6 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
-import GoogleButton from '../components/GoogleButton';
 import authService from '../services/authService';
 
 interface FieldErrors {
@@ -26,7 +25,6 @@ export default function Login() {
     if (!emailVal) next.email = 'Email is required';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) next.email = 'Enter a valid email address';
     if (!passwordVal) next.password = 'Password is required';
-    else if (passwordVal.length < 6) next.password = 'Password must be at least 6 characters';
     return next;
   }
 
@@ -210,29 +208,17 @@ export default function Login() {
           )}
         </button>
 
-        {/* Divider */}
-        <div className="relative py-1">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              OR
-            </span>
-          </div>
-        </div>
-
-        {/* Google */}
-        <GoogleButton label="Login with Google" />
-
+        {/* Demo Credentials Box */}
         <div className="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-600">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-brand-700">
-            Test Credentials
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-700">
+            Demo Credentials
           </p>
-          <div className="mt-3 grid grid-cols-1 gap-1 text-xs">
-            <p><span className="font-semibold text-slate-800">Admin:</span> admin@sportsclub.com / Admin@123</p>
-            <p><span className="font-semibold text-slate-800">Coach:</span> maya.singh@sportsclub.com / Coach@123</p>
-            <p><span className="font-semibold text-slate-800">Member:</span> alex.carter@sportsclub.com / Member@123</p>
+          <div className="mt-2.5 space-y-1.5 text-xs">
+            <p><span className="font-bold text-slate-800">Admin:</span> admin@sportsclub.com / Admin@123</p>
+            <p><span className="font-bold text-slate-800">Coaches (1 per sport):</span> &lt;sport&gt;coach@sportsclub.com / coach</p>
+            <p className="text-[11px] text-slate-500 pl-3">e.g. cricketcoach@sportsclub.com, footballcoach@sportsclub.com</p>
+            <p><span className="font-bold text-slate-800">Members (1 per sport):</span> &lt;sport&gt;user@sportsclub.com / user</p>
+            <p className="text-[11px] text-slate-500 pl-3">e.g. cricketuser@sportsclub.com, footballuser@sportsclub.com</p>
           </div>
         </div>
 

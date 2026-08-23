@@ -64,21 +64,18 @@ class AttendanceService:
             existing.status = request.attendance_status
             if request.remarks is not None:
                 existing.remarks = request.remarks
+            if request.rating is not None:
+                existing.rating = request.rating
             db.commit()
             db.refresh(existing)
             return existing
 
-
         attendance = Attendance(
-
             event_id=request.event_id,
-
             user_id=request.member_id,
-
             status=request.attendance_status,
-
             remarks=request.remarks,
-
+            rating=request.rating,
             marked_by=request.member_id
         )
 

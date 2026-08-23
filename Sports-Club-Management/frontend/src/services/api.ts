@@ -40,8 +40,14 @@ async function request<T>(
   if (!response.ok) {
     let errorDetail = 'Request failed';
     try {
-      const errorData: ApiError = await response.json();
-      errorDetail = errorData.detail || errorDetail;
+      const errorData = await response.json();
+      if (typeof errorData.detail === 'string') {
+        errorDetail = errorData.detail;
+      } else if (Array.isArray(errorData.detail)) {
+        errorDetail = errorData.detail.map((e: any) => e.msg || JSON.stringify(e)).join(', ');
+      } else if (errorData.detail) {
+        errorDetail = JSON.stringify(errorData.detail);
+      }
     } catch {
       // ignore parse error
     }

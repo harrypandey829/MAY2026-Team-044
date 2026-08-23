@@ -16,16 +16,17 @@ export interface Payment {
 
 export interface CreatePaymentRequest {
   member_id: string;
-  amount: number;
+  amount: number | string;
   payment_model: PaymentModel;
   invoice_status: InvoiceStatus;
   due_date: string;
-  paid_date?: string;
+  paid_date?: string | null;
 }
 
 export const paymentService = {
-  async getAll(): Promise<Payment[]> {
-    return api.get<Payment[]>('/payments');
+  async getAll(memberId?: string): Promise<Payment[]> {
+    const url = memberId ? `/payments?member_id=${encodeURIComponent(memberId)}` : '/payments';
+    return api.get<Payment[]>(url);
   },
 
   async getById(id: string): Promise<Payment> {
@@ -33,21 +34,45 @@ export const paymentService = {
   },
 
   async create(data: CreatePaymentRequest): Promise<Payment> {
-    return api.post<Payment>('/payments', data);
+    const payload = {
+      ...data,
+      amount: typeof data.amount === 'string' ? parseFloat(data.amount) || 0 : data.amount,
+    };
+    const res = await api.post<Payment>('/payments', payload);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('club_payment_completed', { detail: res }));
+    }
+    return res;
   },
 
   async update(id: string, data: Partial<CreatePaymentRequest>): Promise<Payment> {
-    return api.put<Payment>(`/payments/${id}`, data);
+    const payload = {
+      ...data,
+      ...(data.amount !== undefined ? { amount: typeof data.amount === 'string' ? parseFloat(data.amount) || 0 : data.amount } : {}),
+    };
+    const res = await api.put<Payment>(`/payments/${id}`, payload);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('club_payment_completed', { detail: res }));
+    }
+    return res;
   },
 
-  // Filter payments by member ID (client-side since no server filter endpoint)
+  async payInvoice(id: string): Promise<Payment> {
+    const today = new Date().toISOString().split('T')[0];
+    return this.update(id, {
+      invoice_status: 'Paid',
+      paid_date: today,
+    });
+  },
+
   filterByMember(payments: Payment[], memberId: string): Payment[] {
     return payments.filter((p) => p.member_id === memberId);
   },
 
   formatAmount(amount: string | number): string {
-    return `₹${parseFloat(String(amount)).toLocaleString('en-IN')}`;
+    return `₹${parseFloat(String(amount || 0)).toLocaleString('en-IN')}`;
   },
 };
 
 export default paymentService;
+

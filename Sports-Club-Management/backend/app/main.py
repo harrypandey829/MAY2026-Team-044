@@ -12,6 +12,9 @@ from app.api.announcement import router as announcement_router
 from app.api.notification import router as notification_router
 from app.api.resource import router as resource_router
 from app.api.resource_booking import router as resource_booking_router
+from app.api.sports import router as sports_router
+from app.api.equipment import router as equipment_router
+from app.api.certificates import router as certificates_router
 from app.api import ai
 
 app = FastAPI(
@@ -45,6 +48,9 @@ app.include_router(announcement_router)
 app.include_router(notification_router)
 app.include_router(resource_router)
 app.include_router(resource_booking_router)
+app.include_router(sports_router)
+app.include_router(equipment_router)
+app.include_router(certificates_router)
 app.include_router(ai.router)
 
 
@@ -68,6 +74,13 @@ def on_startup():
                 columns = [c["name"] for c in inspector.get_columns("users")]
                 if "sport" not in columns:
                     conn.execute(text("ALTER TABLE users ADD COLUMN sport VARCHAR(255)"))
+                if "address" not in columns:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN address VARCHAR(255)"))
+            if "resources" in inspector.get_table_names():
+                columns = [c["name"] for c in inspector.get_columns("resources")]
+                if "capacity" not in columns:
+                    conn.execute(text("ALTER TABLE resources ADD COLUMN capacity INTEGER DEFAULT 50"))
+
     except Exception as e:
         print(f"Startup migration check: {e}")
 

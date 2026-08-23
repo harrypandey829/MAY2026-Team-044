@@ -60,8 +60,14 @@ export default function TeamCalendarPage() {
 
   // Format events for CoachCalendar component
   const calendarEvents = events.map((ev) => ({
+    id: ev.id,
     title: ev.title,
     day: Number(ev.date.split('-')[2]) || 15,
+    dateStr: String(ev.date),
+    sport: ev.sport || defaultSport,
+    venue: ev.venue || 'Main Complex',
+    start_time: ev.start_time ? eventService.formatTime(ev.start_time) : 'TBD',
+    description: ev.description || '',
     type: ev.event_type === 'Practice' ? ('Training' as const) : ev.event_type === 'Match' ? ('Match' as const) : ('Tournament' as const),
   }));
 

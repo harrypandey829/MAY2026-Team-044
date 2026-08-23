@@ -20,10 +20,10 @@ class CreatePaymentRequest(BaseModel):
 
 class UpdatePaymentRequest(BaseModel):
 
-    amount: Decimal
-    payment_model: PaymentModel
-    invoice_status: InvoiceStatus
-    due_date: date
+    amount: Decimal | None = None
+    payment_model: PaymentModel | None = None
+    invoice_status: InvoiceStatus | None = None
+    due_date: date | None = None
     paid_date: date | None = None
 
 

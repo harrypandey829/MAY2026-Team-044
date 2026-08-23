@@ -39,13 +39,14 @@ class PaymentRepository:
 
     def get_all(
         self,
-        db: Session
+        db: Session,
+        member_id: UUID | None = None
     ):
 
-        stmt = (
-            select(Payment)
-            .order_by(Payment.created_at.desc())
-        )
+        stmt = select(Payment)
+        if member_id:
+            stmt = stmt.where(Payment.member_id == member_id)
+        stmt = stmt.order_by(Payment.created_at.desc())
 
         result = db.execute(stmt)
 

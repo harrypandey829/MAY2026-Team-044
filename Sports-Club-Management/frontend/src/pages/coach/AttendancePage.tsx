@@ -224,7 +224,7 @@ export default function AttendancePage() {
                           onClick={() => {
                             setSelectedMemberId(m.id);
                             if (record) {
-                              setAttendanceStatus(record.attendance_status);
+                              setAttendanceStatus(record.attendance_status as any);
                               setRemarks(record.remarks || '');
                             } else {
                               setAttendanceStatus('Present');
