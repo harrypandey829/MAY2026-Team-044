@@ -27,7 +27,6 @@ import CoachCalendar from '../components/coach-dashboard/CoachCalendar';
 import { getDemoRole } from '../utils/demoAuth';
 import { isCoachAuthenticated, logoutCoachDemoUser } from '../utils/coachDemoAuth';
 import userService from '../services/userService';
-import eventService, { type Event } from '../services/eventService';
 import authService, { type AuthUser } from '../services/authService';
 
 const sidebarItems = [
@@ -75,7 +74,12 @@ const availability = [
   { label: 'Not Attending', value: 10, tone: 'bg-rose-500' },
 ];
 
-
+const calendarEvents = [
+  { title: 'Training Session', day: 12, type: 'Training' as const },
+  { title: 'League Match', day: 19, type: 'Match' as const },
+  { title: 'Tournament', day: 24, type: 'Tournament' as const },
+  { title: 'Club Holiday', day: 28, type: 'Holiday' as const },
+];
 
 const announcements = [
   { title: 'Training moved to 6 PM', detail: 'The evening session will start earlier.', action: 'Edit' },
@@ -118,7 +122,6 @@ export default function CoachDashboard() {
   const [activeItem, setActiveItem] = useState('Dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [members, setMembers] = useState<AuthUser[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
 
   const coachUser = authService.getCurrentUser();
   const coachSport = (coachUser?.sport || 'Football').toLowerCase();
@@ -132,7 +135,6 @@ export default function CoachDashboard() {
         setMembers(filtered);
       })
       .catch(() => setMembers([]));
-    eventService.getAll().then(setEvents).catch(() => setEvents([]));
   }, [coachSport]);
 
   const summary = useMemo(() => summaryCards, []);
@@ -451,7 +453,7 @@ export default function CoachDashboard() {
             </section>
 
             <section>
-              <CoachCalendar events={events} />
+              <CoachCalendar events={calendarEvents} />
             </section>
 
             <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">

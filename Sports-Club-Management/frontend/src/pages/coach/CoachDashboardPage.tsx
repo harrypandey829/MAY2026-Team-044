@@ -48,7 +48,12 @@ export default function CoachDashboardPage() {
     { title: 'Announcements', value: String(announcementsCount), subtitle: 'Active notices', icon: <MessageSquareText className="h-5 w-5" />, accent: 'bg-gradient-to-br from-emerald-500 to-green-600', trend: 'Live' },
   ];
 
-
+  const calendarEventsData = events.slice(0, 5).map((e) => {
+    const day = new Date(e.date).getDate() || 15;
+    const type: 'Training' | 'Match' | 'Tournament' | 'Holiday' =
+      e.event_type === 'Practice' ? 'Training' : e.event_type === 'Match' ? 'Match' : e.event_type === 'Tournament' ? 'Tournament' : 'Holiday';
+    return { title: e.title, day, type };
+  });
 
   const quickActionsMap: Record<string, string> = {
     'Create Training Session': '/coach/training',
@@ -205,7 +210,7 @@ export default function CoachDashboardPage() {
           </div>
         </div>
 
-        <CoachCalendar events={events} />
+        <CoachCalendar events={calendarEventsData} />
       </section>
     </CoachPortalLayout>
   );

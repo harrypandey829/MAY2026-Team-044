@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Mail,
   Menu,
   MessageSquareText,
   PencilLine,
@@ -149,6 +150,9 @@ export default function CoachPortalLayout({ children }: CoachPortalLayoutProps) 
                 >
                   <Bell className="h-5 w-5" />
                   <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-pitch-500" />
+                </button>
+                <button type="button" className="rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-100">
+                  <Mail className="h-5 w-5" />
                 </button>
                 <div ref={profileMenuRef} className="relative">
                   <button type="button" onClick={() => setProfileOpen((current) => !current)} className="flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-2.5 py-1.5 shadow-sm">

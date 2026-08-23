@@ -40,25 +40,17 @@ class User(Base, UUIDMixin, TimestampMixin):
 
     profile_picture_url: Mapped[str | None] = mapped_column(String(255))
 
-    # Additional fields
+    # Additional fields that exist in the existing DB schema
     is_approved: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
-        default=False
+        default=True
     )
 
     status: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
-        default="Pending"
+        default="Active"
     )
 
     sport: Mapped[str | None] = mapped_column(String(50), nullable=True)
-
-    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
-
-    gender: Mapped[str | None] = mapped_column(String(50), nullable=True)
-
-    dob: Mapped[str | None] = mapped_column(String(50), nullable=True)
-
-    emergency_contact: Mapped[str | None] = mapped_column(String(255), nullable=True)

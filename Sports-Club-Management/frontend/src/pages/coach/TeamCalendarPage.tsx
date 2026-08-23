@@ -58,16 +58,12 @@ export default function TeamCalendarPage() {
     }
   }
 
-  // State for category dates modal
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-
-  const getCategoryEvents = (category: string) => {
-    if (category === 'Training Sessions') return events.filter((e) => e.event_type === 'Practice');
-    if (category === 'Matches') return events.filter((e) => e.event_type === 'Match');
-    if (category === 'Club Events') return events.filter((e) => e.event_type === 'Tournament' || e.event_type === 'Club Event');
-    if (category === 'Holidays') return events.filter((e) => e.event_type === 'Holiday');
-    return [];
-  };
+  // Format events for CoachCalendar component
+  const calendarEvents = events.map((ev) => ({
+    title: ev.title,
+    day: Number(ev.date.split('-')[2]) || 15,
+    type: ev.event_type === 'Practice' ? ('Training' as const) : ev.event_type === 'Match' ? ('Match' as const) : ('Tournament' as const),
+  }));
 
   return (
     <CoachPortalLayout>
@@ -103,72 +99,18 @@ export default function TeamCalendarPage() {
           {loading ? (
             <p className="py-8 text-center text-sm text-slate-500">Loading team calendar...</p>
           ) : (
-            <CoachCalendar events={events} />
+            <CoachCalendar events={calendarEvents.length > 0 ? calendarEvents : [{ title: 'Practice Session', day: 15, type: 'Training' }]} />
           )}
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-4">
-          {[
-            { label: 'Training Sessions', type: 'Practice' },
-            { label: 'Matches', type: 'Match' },
-            { label: 'Club Events', type: 'Tournament' },
-            { label: 'Holidays', type: 'Holiday' },
-          ].map(({ label }) => {
-            const catEvs = getCategoryEvents(label);
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => setActiveCategory(label)}
-                className="flex items-center justify-between rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4 text-sm font-semibold text-slate-700 hover:border-brand-300 hover:bg-sky-50 transition-all text-left group"
-              >
-                <span>{label}</span>
-                <span className="rounded-full bg-white px-2.5 py-0.5 text-xs font-bold text-brand-600 shadow-sm group-hover:bg-brand-500 group-hover:text-white transition-colors">
-                  {catEvs.length}
-                </span>
-              </button>
-            );
-          })}
+          {['Training Sessions', 'Matches', 'Club Events', 'Holidays'].map((item) => (
+            <div key={item} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4 text-sm font-semibold text-slate-700">{item}</div>
+          ))}
         </div>
         <div className="mt-4 rounded-[1.2rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
-          <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand-600" /> Click any category above to view all scheduled dates.</div>
+          <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand-600" /> All calendar events synchronize live across athlete and staff portals.</div>
         </div>
       </section>
-
-      {/* Category Dates Modal */}
-      {activeCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-lg font-bold text-slate-900">{activeCategory} Schedule</h3>
-              <button type="button" onClick={() => setActiveCategory(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="mt-4 max-h-80 overflow-y-auto space-y-3 pr-1">
-              {getCategoryEvents(activeCategory).length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">No {activeCategory.toLowerCase()} currently scheduled.</p>
-              ) : (
-                getCategoryEvents(activeCategory).map((ev) => (
-                  <div key={ev.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 text-sm">
-                    <div className="flex items-start justify-between">
-                      <p className="font-bold text-slate-900">{ev.title}</p>
-                      <span className="rounded-full bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-700">
-                        {eventService.formatDate(ev.date)}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-slate-600">Venue: {ev.venue} {ev.start_time ? `• ${eventService.formatTime(ev.start_time)}` : ''}</p>
-                  </div>
-                ))
-              )}
-            </div>
-            <div className="mt-5 flex justify-end">
-              <button type="button" onClick={() => setActiveCategory(null)} className="rounded-full bg-slate-100 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Create Event Modal */}
       {isCreateOpen && (

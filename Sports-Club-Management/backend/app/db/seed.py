@@ -60,7 +60,6 @@ def seed():
                 "phone": "+91-9000000002",
                 "password": "Coach@123",
                 "role": UserRole.COACH,
-                "sport": "Football",
             },
             {
                 "first_name": "Rafi",
@@ -69,7 +68,6 @@ def seed():
                 "phone": "+91-9000000003",
                 "password": "Coach@123",
                 "role": UserRole.COACH,
-                "sport": "Cricket",
             },
             {
                 "first_name": "Lina",
@@ -78,7 +76,6 @@ def seed():
                 "phone": "+91-9000000004",
                 "password": "Coach@123",
                 "role": UserRole.COACH,
-                "sport": "Badminton",
             },
             {
                 "first_name": "Aarav",
@@ -87,7 +84,6 @@ def seed():
                 "phone": "+91-9000000005",
                 "password": "Coach@123",
                 "role": UserRole.COACH,
-                "sport": "Tennis",
             },
             {
                 "first_name": "Alex",
@@ -159,17 +155,16 @@ def seed():
             created_users[u["email"]] = user
             print(f"  [OK] Created {u['role'].value}: {u['email']}")
 
+
         db.commit()
 
-        # Always reset passwords and ensure assigned sports are populated for existing users
+        # Always reset passwords (idempotent – fixes stale hashes from prior runs)
         for u in users_data:
             user = db.query(User).filter(User.email == u["email"]).first()
             if user:
                 user.password_hash = hash_password(u["password"])
                 user.is_approved = True
                 user.status = "Active"
-                if u.get("sport") and not user.sport:
-                    user.sport = u["sport"]
         db.commit()
         print("[OK] Passwords and status confirmed for all users.")
 
@@ -342,49 +337,6 @@ def seed():
             )
             db.add(resource)
             print(f"  [OK] Created resource: {r['name']}")
-
-        db.commit()
-
-        # -----------------------------------------------------------------------
-        # PAYMENTS
-        # -----------------------------------------------------------------------
-        from app.common.enums import PaymentModel, InvoiceStatus
-        from app.models.payment import Payment
-
-        alex = created_users.get("alex.carter@sportsclub.com")
-        jamie = created_users.get("jamie.lee@sportsclub.com")
-        sam = created_users.get("sam.rivera@sportsclub.com")
-        priya = created_users.get("priya.sharma@sportsclub.com")
-        jordan = created_users.get("jordan.walsh@sportsclub.com")
-
-        payments_data = [
-            {"member": alex, "amount": 2500.00, "model": PaymentModel.MONTHLY, "status": InvoiceStatus.PAID, "due_offset": 30, "paid_offset": 0},
-            {"member": jamie, "amount": 12000.00, "model": PaymentModel.ANNUAL, "status": InvoiceStatus.PAID, "due_offset": 180, "paid_offset": 0},
-            {"member": sam, "amount": 3000.00, "model": PaymentModel.MONTHLY, "status": InvoiceStatus.PENDING, "due_offset": 15, "paid_offset": None},
-            {"member": priya, "amount": 1500.00, "model": PaymentModel.PAY_PER_USE, "status": InvoiceStatus.PAID, "due_offset": 7, "paid_offset": 0},
-            {"member": jordan, "amount": 2500.00, "model": PaymentModel.MONTHLY, "status": InvoiceStatus.OVERDUE, "due_offset": -5, "paid_offset": None},
-        ]
-
-        for p_info in payments_data:
-            m_user = p_info["member"]
-            if not m_user:
-                continue
-            existing_p = db.query(Payment).filter(Payment.member_id == m_user.id).first()
-            if existing_p:
-                print(f"  [SKIP] Payment exists for: {m_user.email}")
-                continue
-            due_d = date.today() + timedelta(days=p_info["due_offset"])
-            paid_d = (date.today() + timedelta(days=p_info["paid_offset"])) if p_info["paid_offset"] is not None else None
-            payment = Payment(
-                member_id=m_user.id,
-                amount=p_info["amount"],
-                payment_model=p_info["model"],
-                invoice_status=p_info["status"],
-                due_date=due_d,
-                paid_date=paid_d,
-            )
-            db.add(payment)
-            print(f"  [OK] Created payment invoice INR {p_info['amount']} for: {m_user.email}")
 
         db.commit()
 
