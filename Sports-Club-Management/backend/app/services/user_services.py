@@ -83,11 +83,24 @@ class UserService:
         if request.sport is not None:
             user.sport = request.sport
 
+        if request.address is not None:
+            user.address = request.address
+
+        if request.gender is not None:
+            user.gender = request.gender
+
+        if request.dob is not None:
+            user.dob = request.dob
+
+        if request.emergency_contact is not None:
+            user.emergency_contact = request.emergency_contact
+
         if request.is_approved is not None:
             user.is_approved = request.is_approved
 
         if request.status is not None:
             user.status = request.status
+
 
         return self.user_repository.update_user(
             db,

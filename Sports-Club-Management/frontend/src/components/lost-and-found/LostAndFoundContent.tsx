@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Sparkles, ShieldCheck } from 'lucide-react';
 import PageCard from '../member/PageCard';
+import lostAndFoundService, { LostFoundItem as StoredItem } from '../../services/lostAndFoundService';
+import authService from '../../services/authService';
 
 export interface LostFoundItem {
+  id?: string;
   name: string;
   description: string;
   date: string;
@@ -13,39 +16,6 @@ export interface LostFoundItem {
   contact: string;
 }
 
-const initialItems: LostFoundItem[] = [
-  {
-    name: 'Blue Water Bottle',
-    description: 'Found near the pool lounge after the morning session.',
-    date: '10 Jul 2026',
-    location: 'Pool Lounge',
-    status: 'Found',
-    reportedBy: 'Mina R.',
-    sport: 'Swimming',
-    contact: '+1 202 555 0148',
-  },
-  {
-    name: 'Training Towel',
-    description: 'Lost during the evening badminton class.',
-    date: '08 Jul 2026',
-    location: 'Court 2',
-    status: 'Lost',
-    reportedBy: 'Alex C.',
-    sport: 'Badminton',
-    contact: '+1 202 555 0149',
-  },
-  {
-    name: 'Football Gloves',
-    description: 'Left in the changing room after the evening match.',
-    date: '12 Jul 2026',
-    location: 'Changing Room A',
-    status: 'Claimed',
-    reportedBy: 'Noah B.',
-    sport: 'Football',
-    contact: '+1 202 555 0150',
-  },
-];
-
 interface LostAndFoundContentProps {
   variant: 'member' | 'coach' | 'admin';
 }
@@ -53,9 +23,9 @@ interface LostAndFoundContentProps {
 export default function LostAndFoundContent({ variant }: LostAndFoundContentProps) {
   const isCoach = variant === 'coach' || variant === 'admin';
   const isAdmin = variant === 'admin';
+  const user = authService.getCurrentUser();
 
-  // State hooks
-  const [itemsList, setItemsList] = useState<LostFoundItem[]>(initialItems);
+  const [itemsList, setItemsList] = useState<LostFoundItem[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [defaultStatus, setDefaultStatus] = useState<'Lost' | 'Found'>('Lost');
 
@@ -64,11 +34,35 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
   const [itemDesc, setItemDesc] = useState('');
   const [itemLoc, setItemLoc] = useState('');
   const [itemSport, setItemSport] = useState('');
-  const [itemContact, setItemContact] = useState('');
-  const [itemReporter, setItemReporter] = useState('');
+  const [itemContact, setItemContact] = useState(user?.phone || user?.email || '');
+  const [itemReporter, setItemReporter] = useState(user ? `${user.first_name} ${user.last_name}` : '');
+
+  const loadItems = () => {
+    const raw = lostAndFoundService.getItems();
+    const mapped: LostFoundItem[] = raw.map((r: StoredItem) => ({
+      id: r.id,
+      name: r.item,
+      description: `Reported in ${r.category} at ${r.location}`,
+      date: r.date,
+      location: r.location,
+      status: r.status,
+      reportedBy: r.reported_by,
+      sport: r.category,
+      contact: r.contact || 'Club Desk',
+    }));
+    setItemsList(mapped);
+  };
+
+  useEffect(() => {
+    loadItems();
+  }, []);
 
   const openReportModal = (status: 'Lost' | 'Found') => {
     setDefaultStatus(status);
+    if (user) {
+      setItemReporter(`${user.first_name} ${user.last_name}`);
+      setItemContact(user.phone || user.email || '');
+    }
     setIsModalOpen(true);
   };
 
@@ -78,18 +72,17 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
       return;
     }
 
-    const newItem: LostFoundItem = {
-      name: itemName,
-      description: itemDesc,
-      date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    lostAndFoundService.addItem({
+      item: itemName,
+      category: itemSport || 'General Equipment',
       location: itemLoc,
+      date: new Date().toISOString().split('T')[0],
       status: defaultStatus,
-      reportedBy: itemReporter,
-      sport: itemSport || 'General',
+      reported_by: `${itemReporter} (${variant})`,
       contact: itemContact,
-    };
+    });
 
-    setItemsList((prev) => [newItem, ...prev]);
+    loadItems();
 
     // Clear form and close modal
     setItemName('');
@@ -112,7 +105,7 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
               ? isAdmin
                 ? 'Review all reports, update item status, and manage lost and found operations across the club.'
                 : 'Review all reports, update item status, and help coordinate returned items across the club.'
-              : 'Report a missing item, check what has been found, and contact the owner when a match is identified.'}
+              : 'Report a missing item or check what has been found at the club.'}
           </p>
         </div>
       </section>
@@ -133,37 +126,19 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
           >
             Report Found Item
           </button>
-          {isCoach && (
-            <button
-              type="button"
-              onClick={() => openReportModal('Found')}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
-            >
-              Update Item Status
-            </button>
-          )}
         </div>
         <div className="mt-5 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <label className="flex flex-1 items-center gap-2 rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-500">
             <Search className="h-4 w-4" />
             <input className="w-full bg-transparent outline-none" placeholder="Search items" />
           </label>
-          <div className="flex flex-wrap gap-2">
-            <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by status</div>
-            {isCoach && (
-              <>
-                <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by Sport</div>
-                <div className="rounded-full border border-slate-200 bg-slate-50/80 px-3 py-2 text-sm text-slate-600">Filter by Date</div>
-              </>
-            )}
-          </div>
         </div>
       </PageCard>
 
       <PageCard title="Item listings" subtitle="Lost and found records">
         <div className="grid gap-3">
           {itemsList.map((item, index) => (
-            <div key={`${item.name}-${index}`} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
+            <div key={item.id || `${item.name}-${index}`} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-slate-900">{item.name}</p>
@@ -179,28 +154,22 @@ export default function LostAndFoundContent({ variant }: LostAndFoundContentProp
                   <p className="mt-1 text-sm text-slate-500">Contact: {item.contact}</p>
                 </div>
               </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                {isCoach ? (
-                  <>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Edit Details
-                    </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Update Status
-                    </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Mark Claimed
-                    </button>
-                    <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                      Contact Member
-                    </button>
-                  </>
-                ) : (
-                  <button type="button" className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">
-                    Contact Owner
+              {isCoach && (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (item.id) {
+                        lostAndFoundService.updateStatus(item.id, 'Claimed');
+                        loadItems();
+                      }
+                    }}
+                    className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700"
+                  >
+                    Mark Claimed
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

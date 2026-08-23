@@ -22,6 +22,11 @@ export const userService = {
     phone?: string | null;
     profile_picture_url?: string | null;
     sport?: string | null;
+    address?: string | null;
+    gender?: string | null;
+    dob?: string | null;
+    emergency_contact?: string | null;
+    blood_group?: string | null;
     is_approved?: boolean;
     status?: string;
   }): Promise<AuthUser> {

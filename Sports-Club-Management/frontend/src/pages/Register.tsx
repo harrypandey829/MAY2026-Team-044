@@ -15,7 +15,6 @@ import {
   Trophy,
 } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
-import GoogleButton from '../components/GoogleButton';
 
 const sports = ['Badminton', 'Cricket', 'Football', 'Swimming', 'Tennis'] as const;
 
@@ -26,6 +25,10 @@ interface FieldErrors {
   password?: string;
   confirm?: string;
   sport?: string;
+  address?: string;
+  gender?: string;
+  dob?: string;
+  emergencyContact?: string;
   terms?: string;
 }
 
@@ -38,6 +41,10 @@ export default function Register() {
     password: string;
     confirm: string;
     sport: string;
+    address: string;
+    gender: string;
+    dob: string;
+    emergencyContact: string;
     role: 'Member' | 'Coach';
     terms: boolean;
   }>({
@@ -47,6 +54,10 @@ export default function Register() {
     password: '',
     confirm: '',
     sport: '',
+    address: '',
+    gender: 'Male',
+    dob: '',
+    emergencyContact: '',
     role: 'Member',
     terms: false,
   });
@@ -76,6 +87,9 @@ export default function Register() {
     if (!form.confirm) next.confirm = 'Please confirm your password';
     else if (form.confirm !== form.password) next.confirm = 'Passwords do not match';
     if (!form.sport) next.sport = 'Please select a sport';
+    if (!form.address) next.address = 'Address is required';
+    if (!form.dob) next.dob = 'Date of birth is required';
+    if (!form.emergencyContact) next.emergencyContact = 'Emergency contact is required';
     if (!form.terms) next.terms = 'You must agree to the Terms & Privacy Policy';
     return next;
   }
@@ -96,6 +110,10 @@ export default function Register() {
       password: true,
       confirm: true,
       sport: true,
+      address: true,
+      gender: true,
+      dob: true,
+      emergencyContact: true,
       terms: true,
     });
     if (Object.keys(next).length === 0) {
@@ -104,7 +122,7 @@ export default function Register() {
       try {
         const [firstName, ...rest] = form.fullName.trim().split(' ');
         const lastName = rest.join(' ') || '-';
-        const response = await authService.register({
+        await authService.register({
           first_name: firstName,
           last_name: lastName,
           email: form.email,
@@ -112,14 +130,14 @@ export default function Register() {
           password: form.password,
           role: form.role,
           sport: form.sport,
+          address: form.address,
+          gender: form.gender,
+          dob: form.dob,
+          emergency_contact: form.emergencyContact,
         });
-        const role = response.user.role;
-        if (role === 'Admin') navigate('/admin/dashboard');
-        else if (role === 'Coach') {
-          authService.logout();
-          alert('Coach application submitted successfully! Your account is pending admin approval before you can log in.');
-          navigate('/login');
-        } else navigate('/dashboard');
+        authService.logout();
+        alert('Account registration request submitted successfully! Your account is pending Admin approval before you can log in.');
+        navigate('/login');
       } catch (err) {
         setRegisterError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
       } finally {
@@ -127,6 +145,7 @@ export default function Register() {
       }
     }
   }
+
 
 
   function fieldState(value: string, error?: string) {
@@ -395,6 +414,91 @@ export default function Register() {
           )}
         </div>
 
+        {/* Address & Emergency Contact */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="address" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Address *
+            </label>
+            <input
+              id="address"
+              type="text"
+              value={form.address}
+              onChange={(e) => update('address', e.target.value)}
+              onBlur={() => markTouched('address')}
+              placeholder="Street, City, Zip"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            {touched.address && errors.address && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {errors.address}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="emergencyContact" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Emergency Contact *
+            </label>
+            <input
+              id="emergencyContact"
+              type="text"
+              value={form.emergencyContact}
+              onChange={(e) => update('emergencyContact', e.target.value)}
+              onBlur={() => markTouched('emergencyContact')}
+              placeholder="Name & Phone"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 placeholder-slate-400 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            {touched.emergencyContact && errors.emergencyContact && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {errors.emergencyContact}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Gender & DOB */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="gender" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Gender *
+            </label>
+            <select
+              id="gender"
+              value={form.gender}
+              onChange={(e) => update('gender', e.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 font-medium"
+            >
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="dob" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Date of Birth *
+            </label>
+            <input
+              id="dob"
+              type="date"
+              value={form.dob}
+              onChange={(e) => update('dob', e.target.value)}
+              onBlur={() => markTouched('dob')}
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+            />
+            {touched.dob && errors.dob && (
+              <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500">
+                <AlertCircle className="h-3.5 w-3.5" />
+                {errors.dob}
+              </p>
+            )}
+          </div>
+        </div>
+
         {/* Terms checkbox */}
         <div>
           <label className="flex cursor-pointer items-start gap-2.5">
@@ -452,20 +556,6 @@ export default function Register() {
           )}
         </button>
 
-        {/* Divider */}
-        <div className="relative py-1">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center">
-            <span className="bg-white px-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
-              OR
-            </span>
-          </div>
-        </div>
-
-        {/* Google */}
-        <GoogleButton label="Continue with Google" />
 
         {/* Bottom link */}
         <p className="pt-2 text-center text-sm text-slate-500">

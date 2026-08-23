@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, CheckCircle2, Plus, Sparkles, X } from 'lucide-react';
 import CoachPortalLayout from '../../components/coach-dashboard/CoachPortalLayout';
-import resourceService, { resourceBookingService, type Resource } from '../../services/resourceService';
+import resourceService, { resourceBookingService, type Resource, type ResourceBooking } from '../../services/resourceService';
 import authService from '../../services/authService';
 
 export default function EquipmentPage() {
   const [resources, setResources] = useState<Resource[]>([]);
+  const [bookings, setBookings] = useState<ResourceBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -18,12 +19,18 @@ export default function EquipmentPage() {
 
   function loadResources() {
     setLoading(true);
-    resourceService.getAll()
-      .then((data) => {
-        setResources(data);
-        if (data.length > 0) setSelectedResourceId(data[0].id);
+    Promise.all([resourceService.getAll(), resourceBookingService.getAll()])
+      .then(([rData, bData]) => {
+        setResources(rData);
+        if (rData.length > 0) setSelectedResourceId(rData[0].id);
+        if (user) {
+          setBookings(bData.filter((b) => String(b.member_id) === String(user.id) && !b.is_cancelled));
+        }
       })
-      .catch(() => setResources([]))
+      .catch(() => {
+        setResources([]);
+        setBookings([]);
+      })
       .finally(() => setLoading(false));
   }
 
@@ -36,16 +43,27 @@ export default function EquipmentPage() {
     if (!user || !selectedResourceId) return;
     setFeedback(null);
     try {
-      await resourceBookingService.create({
+      const created = await resourceBookingService.create({
         resource_id: selectedResourceId,
         member_id: user.id,
         booking_date: bookingDate,
         duration_hours: 2,
       });
+      setBookings((prev) => [created, ...prev]);
       setIsReserveOpen(false);
-      setFeedback('Resource booking submitted successfully!');
+      setFeedback('Facility / Equipment booked successfully! Reservation Status: Booked.');
     } catch {
       alert('Failed to reserve equipment / facility');
+    }
+  }
+
+  async function handleCancelBooking(b: ResourceBooking) {
+    try {
+      await resourceBookingService.cancel(b.id, b);
+      setBookings((prev) => prev.filter((x) => x.id !== b.id));
+      setFeedback('Reservation cancelled successfully.');
+    } catch {
+      alert('Failed to cancel reservation');
     }
   }
 
@@ -114,18 +132,51 @@ export default function EquipmentPage() {
         <div className="rounded-[2rem] border border-white/70 bg-white/80 p-5 shadow-xl shadow-slate-900/5 backdrop-blur-xl">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Booking Info</p>
-              <h2 className="mt-2 text-xl font-semibold text-slate-900">Resource Logistics</h2>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-600">Booking Info & Log</p>
+              <h2 className="mt-2 text-xl font-semibold text-slate-900">My Reserved Resources ({bookings.length})</h2>
             </div>
             <BookOpen className="h-5 w-5 text-brand-600" />
           </div>
-          <div className="mt-5 space-y-3 text-sm text-slate-600">
-            <p className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4 font-medium text-slate-800">
-              Coaches have priority booking access for training pitches and equipment kits.
-            </p>
+          <div className="mt-5 space-y-3">
+            {loading ? (
+              <p className="py-6 text-center text-sm text-slate-500">Loading bookings...</p>
+            ) : bookings.length === 0 ? (
+              <div className="rounded-[1.2rem] border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center text-sm text-slate-500">
+                No active reservations logged yet. Select a resource on the left to book.
+              </div>
+            ) : (
+              bookings.map((b) => {
+                const res = resources.find((r) => r.id === b.resource_id);
+                const resName = b.resource_name || res?.name || 'Club Resource';
+                return (
+                  <div key={b.id} className="rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-slate-900">{resName}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Date: <span className="font-semibold text-slate-700">{b.booking_date}</span> ({b.duration_hours} hrs)
+                        </p>
+                      </div>
+                      <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
+                        Booked
+                      </span>
+                    </div>
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleCancelBooking(b)}
+                        className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors"
+                      >
+                        Cancel Reservation
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
           <div className="mt-4 rounded-[1.2rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
-            <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand-600" /> All equipment bookings are logged in real time for facility coordination.</div>
+            <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand-600" /> All equipment reservations are synced with the Admin facility coordinator.</div>
           </div>
         </div>
       </section>

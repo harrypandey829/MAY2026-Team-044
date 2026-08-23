@@ -7,7 +7,6 @@ export default function SettingsPage() {
     'Training Session Broadcasts': true,
     'Match Result Alerts': true,
     'Athlete Availability Email Digest': true,
-    'Dark Portal Accents': false,
   });
 
   const [feedback, setFeedback] = useState<string | null>(null);

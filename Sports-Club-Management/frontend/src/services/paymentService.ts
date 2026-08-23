@@ -12,6 +12,8 @@ export interface Payment {
   due_date: string;
   paid_date: string | null;
   created_at: string;
+  member_name?: string;
+  member_email?: string;
 }
 
 export interface CreatePaymentRequest {
