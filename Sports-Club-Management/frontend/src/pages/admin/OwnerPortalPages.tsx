@@ -1527,11 +1527,23 @@ export function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadPayments() {
+    setLoading(true);
     paymentService.getAll()
       .then(setPayments)
       .catch(() => setPayments([]))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadPayments();
+
+    function handlePaymentEvent() {
+      loadPayments();
+    }
+
+    window.addEventListener('club_payment_completed', handlePaymentEvent);
+    return () => window.removeEventListener('club_payment_completed', handlePaymentEvent);
   }, []);
 
   const totalRevenue = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
@@ -1756,6 +1768,13 @@ export function ReportsPage() {
 
   useEffect(() => {
     loadData();
+
+    function handlePaymentEvent() {
+      loadData();
+    }
+
+    window.addEventListener('club_payment_completed', handlePaymentEvent);
+    return () => window.removeEventListener('club_payment_completed', handlePaymentEvent);
   }, []);
 
   const totalRevenue = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);

@@ -8,7 +8,8 @@ export default function ResourcesPayments() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  function loadData() {
+    setLoading(true);
     Promise.all([resourceService.getAll(), paymentService.getAll()])
       .then(([rList, pList]) => {
         setResources(rList.slice(0, 4));
@@ -16,6 +17,17 @@ export default function ResourcesPayments() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadData();
+
+    function handlePaymentEvent() {
+      loadData();
+    }
+
+    window.addEventListener('club_payment_completed', handlePaymentEvent);
+    return () => window.removeEventListener('club_payment_completed', handlePaymentEvent);
   }, []);
 
   return (

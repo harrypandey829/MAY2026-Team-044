@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import authService from '../services/authService';
+import paymentService from '../services/paymentService';
+import sportPlansService from '../services/sportPlansService';
+import announcementService from '../services/announcementService';
 import {
   User,
   Mail,
@@ -112,12 +115,38 @@ export default function Register() {
           sport: form.sport,
         });
         const role = response.user.role;
-        if (role === 'Admin') navigate('/admin/dashboard');
-        else if (role === 'Coach') {
+        if (role === 'Admin') {
+          navigate('/admin/dashboard');
+        } else if (role === 'Coach') {
           authService.logout();
           alert('Coach application submitted successfully! Your account is pending admin approval before you can log in.');
           navigate('/login');
-        } else navigate('/dashboard');
+        } else {
+          // Member registration - create initial sport membership fee invoice
+          try {
+            const today = new Date().toISOString().split('T')[0];
+            const sportPlan = sportPlansService.getPlan(form.sport || 'Badminton');
+            const feeAmount = sportPlan.monthlyPrice || 1500;
+            
+            await paymentService.create({
+              member_id: response.user.id,
+              amount: feeAmount,
+              payment_model: 'Monthly',
+              invoice_status: 'Paid',
+              due_date: today,
+              paid_date: today,
+            });
+
+            await announcementService.create({
+              title: `New Member Registration: ${form.sport}`,
+              message: `${response.user.first_name} ${response.user.last_name} enrolled in ${form.sport} (Monthly Membership Fee: ₹${feeAmount.toLocaleString('en-IN')}).`,
+              created_by: response.user.id,
+            });
+          } catch (paymentErr) {
+            console.error('Registration payment creation warning:', paymentErr);
+          }
+          navigate('/dashboard');
+        }
       } catch (err) {
         setRegisterError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
       } finally {

@@ -72,29 +72,20 @@ export const authService = {
   getEnrolledSports(): string[] {
     const user = this.getCurrentUser();
     if (!user || !user.sport || !user.sport.trim()) return [];
-    return user.sport
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    return [user.sport.trim()];
   },
 
   async addEnrolledSport(sportName: string): Promise<AuthUser | null> {
     const user = this.getCurrentUser();
     if (!user) return null;
-    const current = this.getEnrolledSports();
-    if (!current.includes(sportName)) {
-      current.push(sportName);
-      const newSportStr = current.join(', ');
-      const updatedUser: AuthUser = { ...user, sport: newSportStr };
-      this.updateUserLocal(updatedUser);
-      try {
-        await userService.updateProfile(user.id, { sport: newSportStr });
-      } catch (err) {
-        console.error('Failed to sync sports update to backend:', err);
-      }
-      return updatedUser;
+    const updatedUser: AuthUser = { ...user, sport: sportName };
+    this.updateUserLocal(updatedUser);
+    try {
+      await userService.updateProfile(user.id, { sport: sportName });
+    } catch (err) {
+      console.error('Failed to sync sports update to backend:', err);
     }
-    return user;
+    return updatedUser;
   },
 
   getToken(): string | null {

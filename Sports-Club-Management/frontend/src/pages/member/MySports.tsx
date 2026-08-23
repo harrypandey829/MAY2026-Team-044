@@ -45,27 +45,27 @@ export default function MySportsPage() {
       <section className="rounded-[2rem] border border-sky-200/70 bg-gradient-to-r from-sky-100 via-white to-emerald-50 p-6 text-slate-900 shadow-xl shadow-sky-100/80 sm:p-8">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.25em] text-brand-700">Portal</p>
-          <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">My Sports</h1>
-          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Manage every sport you are enrolled in, review your coach details, and explore new sports memberships.</p>
+          <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">My Sport</h1>
+          <p className="mt-3 text-sm leading-7 text-slate-600 sm:text-base">Review your enrolled sport discipline, team details, schedule, and coach assignments.</p>
         </div>
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-        <PageCard title="Joined sports" subtitle={`${joinedList.length} enrolled`}>
+      <div>
+        <PageCard title="Enrolled Sport" subtitle={`${joinedList.length} sport discipline active`}>
           <div className="space-y-3">
             {joinedList.length === 0 ? (
               <div className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-6 text-center text-slate-500">
-                You haven&apos;t joined any sports yet. Explore available sports to get started!
+                You are currently not enrolled in any sport.
               </div>
             ) : (
               joinedList.map((item) => (
-                <div key={item.name} className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-4">
+                <div key={item.name} className="rounded-[1.4rem] border border-slate-200/70 bg-slate-50/80 p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-slate-900">{item.name}</p>
+                      <p className="text-xl font-bold text-slate-900">{item.name}</p>
                       <p className="mt-1 text-sm text-slate-500">{item.team}</p>
                     </div>
-                    <div className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Enrolled</div>
+                    <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Active Discipline</div>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <div>
@@ -84,35 +84,6 @@ export default function MySportsPage() {
                 </div>
               ))
             )}
-          </div>
-        </PageCard>
-
-        <PageCard title="Explore more" subtitle="Join another sport">
-          <div className="space-y-3">
-            {exploreList.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.name} className="flex items-center justify-between rounded-[1.2rem] border border-slate-200/70 bg-slate-50/80 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-2xl bg-white p-2.5 text-brand-600 shadow-sm"><Icon className="h-5 w-5" /></div>
-                    <div>
-                      <p className="font-semibold text-slate-900">{item.name}</p>
-                      <p className="text-sm text-slate-500">Membership plan available</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleJoinSport(item.name)}
-                    className="rounded-full bg-gradient-to-r from-brand-500 to-emerald-500 px-3 py-2 text-sm font-semibold text-white transition-all hover:scale-105"
-                  >
-                    Join
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-          <div className="mt-4 rounded-[1.4rem] border border-sky-200 bg-sky-50/80 p-4 text-sm text-slate-700">
-            <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-brand-600" /> Select a sport to view its membership plan and enroll instantly.</div>
           </div>
         </PageCard>
       </div>
